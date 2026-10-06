@@ -55,6 +55,11 @@ and the same under `/tools`; `$XILINX_VIVADO` is honoured if set. Quartus and
 Radiant paths come from `QUARTUS` / `LATTICE_RADIANT` (or
 `$QUARTUS_ROOTDIR`) and do not depend on the release.
 
+`analogdevicesinc/hdl` keeps documentation images in Git LFS and some objects
+are missing upstream; builds never need them. `build-hdl.sh` sets
+`GIT_LFS_SKIP_SMUDGE=1` for its own git operations, and if `git-lfs` is
+installed on your host run `cim init` with `GIT_LFS_SKIP_SMUDGE=1` too.
+
 Switching release refuses to touch a dirty `hdl/` worktree (tracked
 modifications; untracked build output is fine). A local branch of the same
 name is used as-is, so your own commits are never reset — run

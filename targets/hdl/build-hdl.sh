@@ -23,6 +23,9 @@ RESET="\033[0m"
 
 HDL_UPSTREAM_URL="https://github.com/analogdevicesinc/hdl.git"
 HDL_RELEASE_DEFAULT="hdl_2026_r1"
+# hdl stores documentation images in Git LFS; builds do not need them and some
+# objects are missing upstream, so never smudge LFS when switching releases.
+export GIT_LFS_SKIP_SMUDGE=1
 
 # Release selection and tool paths (CLI flags override these environment defaults)
 HDL_RELEASE="${HDL_RELEASE:-$HDL_RELEASE_DEFAULT}"

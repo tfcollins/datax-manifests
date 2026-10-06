@@ -11,6 +11,9 @@ permissions:
 env:
   # Upstream cim release the manifests are validated against. Bump deliberately.
   CIM_VERSION: v1.2.4
+  # analogdevicesinc/hdl keeps docs images in LFS (some objects missing upstream);
+  # builds don't need them and smudging breaks the clone on runners with git-lfs.
+  GIT_LFS_SKIP_SMUDGE: "1"
 
 jobs:
   test:
