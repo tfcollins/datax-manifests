@@ -10,13 +10,24 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "targets/hdl/build-hdl.sh"
 
 # Project/board stubs per fake release; the Makefile include decides the tool.
+# A project whose value is a plain tool string has no carrier boards (SOM-style
+# designs such as jupiter_sdr/pluto): its Makefile sits in the project dir.
 RELEASES = {
     "hdl_2023_r2": {"fmcomms2": {"zed": "xilinx", "zcu102": "xilinx"},
-                    "ad9361": {"a10soc": "intel"}},
+                    "ad9361": {"a10soc": "intel"},
+                    "pluto": "xilinx"},
     "hdl_2026_r1": {"fmcomms2": {"zcu102": "xilinx"},
                     "ad9081_fmca_ebz": {"vck190": "xilinx"},
-                    "cn0561": {"de10nano": "intel"}},
+                    "cn0561": {"de10nano": "intel"},
+                    "jupiter_sdr": "xilinx"},
 }
+
+
+def write_project_makefile(path, name, tool):
+    path.mkdir(parents=True)
+    depth = "../" * (len(path.relative_to(path.parents[len(path.parts) - 1 - path.parts.index("projects") - 1]).parts) - 1)
+    (path / "Makefile").write_text(
+        f"PROJECT_NAME := {name}\ninclude {depth}scripts/project-{tool}.mk\n")
 
 
 def git(cwd, *args, **kwargs):
@@ -36,10 +47,12 @@ def make_upstream(path):
         for stale in path.glob("projects"):
             shutil.rmtree(stale)
         for project, boards in projects.items():
+            if isinstance(boards, str):
+                write_project_makefile(path / "projects" / project, project, boards)
+                continue
             for board, tool in boards.items():
-                board_dir = path / "projects" / project / board
-                board_dir.mkdir(parents=True)
-                (board_dir / "Makefile").write_text(f"include ../../scripts/project-{tool}.mk\n")
+                write_project_makefile(path / "projects" / project / board,
+                                       f"{project}_{board}", tool)
         (path / "RELEASE").write_text(release + "\n")
         git(path, "add", "-A")
         git(path, "commit", "-qm", release)
@@ -162,6 +175,52 @@ class HdlGuideTests(unittest.TestCase):
         self.assertNotIn("2025.1", result.stdout)
         self.assertIn("build_boot_bin.sh", result.stdout)
         self.assertFalse((self.workspace / "hdl/projects/fmcomms2/zed/build").exists())
+
+    def test_carrierless_project_listed_and_described(self):
+        result = self.run_script("--list")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = [line for line in result.stdout.splitlines() if line.startswith("jupiter_sdr")]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual([c.strip() for c in rows[0].split("|")][:2], ["jupiter_sdr", "-"])
+        self.assertIn("Vivado", rows[0])
+        result = self.run_script("--list-boards", "jupiter_sdr")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("no carrier boards", result.stdout)
+        self.assertIn("HDL_PROJECT=jupiter_sdr", result.stdout)
+        # --project alone is enough; no HINT to add --board
+        result = self.run_script("--project", "jupiter_sdr", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("[HINT]", result.stdout)
+
+    def test_carrierless_project_builds_in_project_dir_ignoring_board(self):
+        # sdk.yml always passes the default HDL_BOARD; it must be ignored with a warning
+        result = self.run_script("--project", "jupiter_sdr", "--board", "zcu102", "--dry-run",
+                                 "--boot-bin", "true")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("ignoring HDL_BOARD=zcu102", result.stdout)
+        self.assertIn('-C "' + str(self.workspace / "hdl/projects/jupiter_sdr") + '"', result.stdout)
+        self.assertNotIn("projects/jupiter_sdr/zcu102", result.stdout)
+        # BOOT.BIN path uses the Makefile's PROJECT_NAME, not <proj>_<board>
+        self.assertIn("build/jupiter_sdr.sdk/system_top.xsa", result.stdout)
+        # Carrier projects still use PROJECT_NAME from their Makefile too
+        result = self.run_script("--project", "fmcomms2", "--board", "zcu102", "--dry-run",
+                                 "--boot-bin", "true")
+        self.assertIn("build/fmcomms2_zcu102.sdk/system_top.xsa", result.stdout)
+        # Not carrier-less on a release where it does not exist
+        result = self.run_script("--project", "pluto", "--dry-run")
+        self.assertNotEqual(result.returncode, 0)
+        result = self.run_script("--project", "pluto", "--dry-run", "--release", "hdl_2023_r2")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_carrierless_clean(self):
+        mf = self.workspace / "hdl/projects/jupiter_sdr/Makefile"
+        # keep the vendor-mk marker so the project is still detected as carrier-less
+        mf.write_text("# include ../scripts/project-xilinx.mk\nclean:\n\t@echo CLEANED $(DIR_NAME) in $(CURDIR)\n")
+        git(self.workspace / "hdl", "commit", "-qam", "stub clean")
+        result = self.run_script("--project", "jupiter_sdr", "--board", "zcu102", "--clean",
+                                 "--dir-name", "out")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("CLEANED out in " + str(self.workspace / "hdl/projects/jupiter_sdr"), result.stdout)
 
     def test_clean_of_missing_combo_is_a_noop(self):
         result = self.run_script("--project", "nope", "--board", "zed", "--clean")

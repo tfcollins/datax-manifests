@@ -175,11 +175,45 @@ ensure_release() {
 
 PROJECTS_DIR="${HDL_DIR}/projects"
 
+# Some projects (SOM-style boards such as jupiter_sdr, pluto, m2k) have no
+# carrier subdirectories: the project directory itself carries the vendor
+# Makefile and is built directly. The board argument is ignored for those.
+is_carrierless_project() {
+    local mf="${PROJECTS_DIR}/$1/Makefile"
+    [ -f "$mf" ] && grep -q "project-\(xilinx\|intel\|lattice\)\.mk" "$mf"
+}
+
+# Directory that holds the vendor Makefile for a project (+ optional board)
+get_project_dir() {
+    local proj="$1"
+    local board="${2:-}"
+    if is_carrierless_project "$proj"; then
+        echo "${PROJECTS_DIR}/${proj}"
+    else
+        echo "${PROJECTS_DIR}/${proj}/${board}"
+    fi
+}
+
+# PROJECT_NAME as the hdl Makefile defines it (drives the <name>.sdk output dir)
+get_project_name() {
+    local dir name
+    dir="$(get_project_dir "$1" "${2:-}")"
+    name="$(sed -n 's/^PROJECT_NAME[[:space:]]*:\?=[[:space:]]*//p' "${dir}/Makefile" 2>/dev/null | head -1)"
+    if [ -n "$name" ]; then
+        echo "$name"
+    elif is_carrierless_project "$1"; then
+        echo "$1"
+    else
+        echo "${1}_${2}"
+    fi
+}
+
 # Helper function to identify required EDA tool for a project/board combo
 get_required_tool() {
     local proj="$1"
     local board="$2"
-    local mf="${PROJECTS_DIR}/${proj}/${board}/Makefile"
+    local mf
+    mf="$(get_project_dir "$proj" "$board")/Makefile"
 
     if [ ! -f "$mf" ]; then
         echo "Unknown"
@@ -234,11 +268,15 @@ get_project_boards() {
     done | sort
 }
 
-# Check if a specific project and board combination exists
+# Check if a specific project and board combination exists.
+# Carrier-less projects are valid with any (ignored) board value.
 is_valid_combo() {
     local proj="$1"
     local board="$2"
-    [ -f "${PROJECTS_DIR}/${proj}/${board}/Makefile" ]
+    if is_carrierless_project "$proj"; then
+        return 0
+    fi
+    [ -n "$board" ] && [ -f "${PROJECTS_DIR}/${proj}/${board}/Makefile" ]
 }
 
 # Check tool availability in environment
@@ -341,7 +379,11 @@ cmd_list_all() {
     local total_combos=0
     for proj in $(get_all_projects); do
         local boards
-        boards=$(get_project_boards "$proj")
+        if is_carrierless_project "$proj"; then
+            boards="-"
+        else
+            boards=$(get_project_boards "$proj")
+        fi
         for board in $boards; do
             local tool
             tool=$(get_required_tool "$proj" "$board")
@@ -354,7 +396,8 @@ cmd_list_all() {
     done
 
     echo "---------------------------+----------------------+-------------"
-    echo -e "${BOLD}Total: ${total_combos} project-carrier board combinations available.${RESET}\n"
+    echo -e "${BOLD}Total: ${total_combos} project-carrier board combinations available.${RESET}"
+    echo -e "Carrier board '-' marks projects built directly (no HDL_BOARD needed).\n"
 }
 
 # List tool overview matrix
@@ -413,6 +456,15 @@ cmd_list_boards_for_project() {
         return 1
     fi
 
+    if is_carrierless_project "$proj"; then
+        local tool tdesc
+        tool=$(get_required_tool "$proj" "")
+        tdesc=$(get_tool_desc "$tool")
+        echo -e "${BOLD}Project \x27${CYAN}${proj}${RESET}\x27 has no carrier boards; it is built directly (${tool} - ${tdesc}).${RESET}"
+        echo "Build with: make sdk-build HDL_PROJECT=${proj}"
+        echo ""
+        return 0
+    fi
     echo -e "${BOLD}Supported carrier boards for project \x27${CYAN}${proj}${RESET}\x27:${RESET}"
     printf "%-20s | %-12s | %s\n" "BOARD" "EDA TOOL" "TOOL SPECIFICATION"
     echo "---------------------+--------------+----------------------------------"
@@ -473,6 +525,11 @@ run_interactive_wizard() {
     done
 
     # Step 2: Board Selection
+    local selected_board=""
+    if is_carrierless_project "$selected_project"; then
+        echo -e "\n${BOLD}${YELLOW}[Step 2/5] Carrier Board${RESET}"
+        echo -e "Project \x27${selected_project}\x27 has no carrier boards; it is built directly."
+    else
     echo -e "\n${BOLD}${YELLOW}[Step 2/5] Select Carrier Board for \x27${selected_project}\x27${RESET}"
     local available_boards=()
     while IFS= read -r b; do
@@ -496,7 +553,6 @@ run_interactive_wizard() {
         printf "  [%d] %-18s (Tool: %s - %s)\n" "$((i + 1))" "$b" "$t" "$tdesc"
     done
 
-    local selected_board=""
     while [ -z "$selected_board" ]; do
         read -r -p "Select carrier board [1-${#available_boards[@]} or board name] > " input_board
         input_board=$(echo "$input_board" | xargs)
@@ -515,6 +571,7 @@ run_interactive_wizard() {
             fi
         fi
     done
+    fi
 
     # Step 3: Tool Verification
     local required_tool
@@ -561,14 +618,14 @@ run_interactive_wizard() {
     echo -e "--------------------------------------------------------------------------------"
     echo -e "  HDL Release:           ${BOLD}${GREEN}${HDL_RELEASE}${RESET}"
     echo -e "  Project:               ${BOLD}${GREEN}${selected_project}${RESET}"
-    echo -e "  Carrier Board:         ${BOLD}${GREEN}${selected_board}${RESET}"
+    echo -e "  Carrier Board:         ${BOLD}${GREEN}${selected_board:-(none)}${RESET}"
     echo -e "  Required Tool:         ${BOLD}${CYAN}${required_tool}${RESET} (${tool_desc})"
     echo -e "  Parallel Jobs:         ${BOLD}${make_jobs}${RESET}"
     echo -e "  Output Folder:         ${BOLD}${dir_name}${RESET}"
     echo -e "  Generate BOOT.BIN:     ${BOLD}${build_boot_bin}${RESET}"
     echo -e "--------------------------------------------------------------------------------"
     echo -e "Equivalent CIM / Make command:"
-    echo -e "  ${CYAN}make HDL_RELEASE=${HDL_RELEASE} HDL_PROJECT=${selected_project} HDL_BOARD=${selected_board} DIR_NAME=${dir_name} MAKE_JOBS=\"${make_jobs}\" BUILD_BOOT_BIN=${build_boot_bin} sdk-build${RESET}"
+    echo -e "  ${CYAN}make HDL_RELEASE=${HDL_RELEASE} HDL_PROJECT=${selected_project}${selected_board:+ HDL_BOARD=${selected_board}} DIR_NAME=${dir_name} MAKE_JOBS=\"${make_jobs}\" BUILD_BOOT_BIN=${build_boot_bin} sdk-build${RESET}"
     echo -e "--------------------------------------------------------------------------------"
 
     read -r -p "Start the build now? [Y/n] > " confirm
@@ -599,6 +656,12 @@ execute_build() {
         fi
         exit 1
     fi
+    if is_carrierless_project "$proj"; then
+        if [ -n "$board" ]; then
+            echo -e "${YELLOW}[WARN]${RESET} Project \x27${proj}\x27 has no carrier boards; ignoring HDL_BOARD=${board}."
+        fi
+        board=""
+    fi
 
     local tool
     tool=$(get_required_tool "$proj" "$board")
@@ -606,10 +669,12 @@ execute_build() {
     local env_setup
     env_setup=$(get_tool_env_setup "$tool")
 
-    local project_board_dir="${HDL_DIR}/projects/${proj}/${board}"
+    local project_board_dir project_name
+    project_board_dir="$(get_project_dir "$proj" "$board")"
+    project_name="$(get_project_name "$proj" "$board")"
 
     echo -e "\n${BOLD}${GREEN}================================================================================${RESET}"
-    echo -e "${BOLD}${GREEN} Building ADI HDL Design: ${proj} / ${board} [${tool}] (${HDL_RELEASE}) ${RESET}"
+    echo -e "${BOLD}${GREEN} Building ADI HDL Design: ${proj}${board:+ / ${board}} [${tool}] (${HDL_RELEASE}) ${RESET}"
     echo -e "${BOLD}${GREEN}================================================================================${RESET}"
     echo -e "  HDL Release:       ${HDL_RELEASE}"
     echo -e "  Project Directory: ${project_board_dir}"
@@ -622,7 +687,7 @@ execute_build() {
         echo "1) ${env_setup}"
         echo "2) make ${make_jobs} -C \"${project_board_dir}\" DIR_NAME=\"${dir_name}\""
         if [ "$boot_bin_enabled" = "true" ]; then
-            echo "3) cd \"${project_board_dir}\" && bash \"${WORKSPACE_ROOT}/scripts/build_boot_bin.sh\" \"${dir_name}/${proj}_${board}.sdk/system_top.xsa\" \"${boot_bin_uboot}\""
+            echo "3) cd \"${project_board_dir}\" && bash \"${WORKSPACE_ROOT}/scripts/build_boot_bin.sh\" \"${dir_name}/${project_name}.sdk/system_top.xsa\" \"${boot_bin_uboot}\""
         fi
         return 0
     fi
@@ -639,12 +704,12 @@ execute_build() {
             if [ -f \"${WORKSPACE_ROOT}/scripts/build_boot_bin.sh\" ]; then
                 echo -e \x27\n${BOLD}${CYAN}Generating BOOT.BIN...${RESET}\x27
                 cd \"${project_board_dir}\"
-                bash \"${WORKSPACE_ROOT}/scripts/build_boot_bin.sh\" \"${dir_name}/${proj}_${board}.sdk/system_top.xsa\" \"${boot_bin_uboot}\"
+                bash \"${WORKSPACE_ROOT}/scripts/build_boot_bin.sh\" \"${dir_name}/${project_name}.sdk/system_top.xsa\" \"${boot_bin_uboot}\"
             fi
         fi
     "
 
-    echo -e "\n${BOLD}${GREEN}[SUCCESS] HDL Build completed successfully for ${proj}/${board}!${RESET}\n"
+    echo -e "\n${BOLD}${GREEN}[SUCCESS] HDL Build completed successfully for ${proj}${board:+/${board}}!${RESET}\n"
 }
 
 # Clean a project/board build directory with the right tool environment
@@ -652,12 +717,14 @@ execute_clean() {
     local proj="$1"
     local board="$2"
     local dir_name="$3"
-    local project_board_dir="${HDL_DIR}/projects/${proj}/${board}"
 
     if ! is_valid_combo "$proj" "$board"; then
         echo "Project/board ${proj}/${board} does not exist in release ${HDL_RELEASE}; nothing to clean."
         return 0
     fi
+    if is_carrierless_project "$proj"; then board=""; fi
+    local project_board_dir
+    project_board_dir="$(get_project_dir "$proj" "$board")"
     local tool
     tool=$(get_required_tool "$proj" "$board")
     if [ "$tool" = "Vivado" ]; then require_vivado; fi
@@ -691,7 +758,8 @@ Release / Tool Selection:
 
 Direct Build Options:
   -p, --project <name>       HDL Project name (e.g. fmcomms2, adrv9009, cn0561)
-  -b, --board <name>         Carrier board name (e.g. zcu102, zed, de10nano, a10soc)
+  -b, --board <name>         Carrier board name (e.g. zcu102, zed, de10nano, a10soc).
+                             Ignored for projects without carriers (jupiter_sdr, pluto, ...)
   -j, --jobs <N>             Parallel make jobs (e.g. -j8, default: -j\$(nproc))
   -d, --dir-name <name>      Build output directory name (default: build)
   --boot-bin [true|false]    Generate BOOT.BIN binary for Zynq/ZynqMP designs
@@ -729,6 +797,9 @@ Examples:
 
   # Build cn0561 for DE10-Nano with Intel Quartus
   ./scripts/build-hdl.sh --project cn0561 --board de10nano --jobs 8
+
+  # Build a project that has no carrier boards
+  ./scripts/build-hdl.sh --project jupiter_sdr
 EOF
 }
 
@@ -884,14 +955,14 @@ main() {
             ;;
     esac
 
-    if [ -n "$opt_proj" ] && [ -n "$opt_board" ]; then
+    if [ -n "$opt_proj" ] && { [ -n "$opt_board" ] || is_carrierless_project "$opt_proj"; }; then
         if [ "$opt_clean" = "true" ]; then
             execute_clean "$opt_proj" "$opt_board" "$opt_dirname"
         else
             execute_build "$opt_proj" "$opt_board" "$opt_jobs" "$opt_dirname" "$opt_boot_bin" "$opt_uboot" "$opt_dry_run"
         fi
     elif [ -n "$opt_proj" ] && [ -z "$opt_board" ]; then
-        cmd_list_boards_for_project "$opt_proj"
+        cmd_list_boards_for_project "$opt_proj" || exit 1
         echo -e "${YELLOW}[HINT]${RESET} Specify a carrier board with --board <board_name> to build."
     else
         echo -e "${RED}[ERROR]${RESET} Both --project and --board must be specified for non-interactive build." >&2

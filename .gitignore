@@ -4,3 +4,7 @@ __pycache__/
 # Local cim workspaces initialized next to the manifests
 /ws-*/
 /workspace*/
+
+# cim workspaces accidentally initialized inside the repo
+/test*/
+.workspace

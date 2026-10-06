@@ -91,6 +91,22 @@ name is used as-is, so your own commits are never reset — run
 The tool for a project/board is detected from its Makefile
 (`project-xilinx.mk` / `project-intel.mk` / `project-lattice.mk`).
 
+### Projects without carrier boards
+
+SOM-style designs (`jupiter_sdr`, `pluto`, `m2k`, `sidekiqz2`, `usrpe31x`, …)
+have the vendor Makefile directly in `projects/<name>/` and no carrier
+subdirectories. They are built with just the project name — `HDL_BOARD` is
+ignored (with a warning, since `sdk.yml` always passes its default):
+
+```bash
+make sdk-build HDL_PROJECT=jupiter_sdr
+make list-boards HDL_PROJECT=jupiter_sdr     # "has no carrier boards; built directly"
+```
+
+`make list-combos` shows these with `-` in the carrier board column. BOOT.BIN
+generation uses the Makefile's `PROJECT_NAME` for the `.sdk` path, so it works
+for both layouts.
+
 ## Guided wizard
 
 `make guide` (or `./scripts/build-hdl.sh`) walks through:
