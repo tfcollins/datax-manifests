@@ -8,3 +8,6 @@ __pycache__/
 # cim workspaces accidentally initialized inside the repo
 /test*/
 .workspace
+
+# Sphinx output
+/doc/build/

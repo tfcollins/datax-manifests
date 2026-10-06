@@ -6,6 +6,9 @@ repositories, host dependencies and build recipes cim uses to set up a
 ready-to-build workspace; the targets work with upstream cim — no fork
 required.
 
+Documentation: https://tfcollins.github.io/datax-manifests/ (built from the
+target READMEs with Sphinx + ADI's cosmic theme).
+
 ## Getting started
 
 Install cim following the
@@ -68,6 +71,21 @@ Use `--source /path/to/datax-manifests` for a local checkout, or
 4. Document it in `targets/<name>/README.md` and add a row above.
 5. Add offline tests under `tests/` where the target carries scripts.
 
+## Documentation
+
+```bash
+pip install -r doc/requirements.txt
+make -C doc html SPHINXOPTS="-W"
+xdg-open doc/build/html/index.html
+```
+
+`doc/source/targets/*.md` are one-line `{include}`s of the target READMEs
+and `doc/source/repository.md` includes this file, so there is nothing to
+keep in sync; `doc/source/ext/readme_links.py` rewrites the READMEs'
+GitHub-relative links to the corresponding pages. Theme and tooling follow
+[pyadi-iio](https://github.com/analogdevicesinc/pyadi-iio) (`adi-doctools`
+cosmic theme, `myst-parser`).
+
 ## Testing
 
 ```bash
@@ -78,12 +96,13 @@ Tests that need a `cim` binary look at `CIM_BIN` or `PATH` and skip
 otherwise; set `CIM_NETWORK=1` to also run the cases that clone real
 repositories.
 
-CI (`.github/workflows/ci.yml`) runs four jobs against the pinned upstream
+CI (`.github/workflows/ci.yml`) runs five jobs against the pinned upstream
 cim release:
 
 | Job | Runner | What |
 |---|---|---|
 | `lint` | GitHub-hosted | shellcheck, `py_compile`, YAML parse, actionlint |
+| `docs` | GitHub-hosted | Sphinx build with `-W`; publishes `doc/build/html` to GitHub Pages on `main` |
 | `test` | GitHub-hosted | adi-linux tests, `cim init` smoke of `adi-linux` |
 | `boot-components` | GitHub-hosted (matrix) | real `u-boot.elf` builds for `jupiter_sdr` / `zed` and `bl31.elf` for ZynqMP via the standalone targets; artifacts uploaded |
 | `hdl` | self-hosted `hdl-dev-2` (labels `hdl-dev-2`, `vivado`) | hdl tests incl. real `cim init`, `make check-tools` for both releases against the installed Vivado 2023.2 / 2025.1, dry-run builds, `hdl-boot` smoke-init |

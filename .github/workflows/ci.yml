@@ -87,6 +87,38 @@ jobs:
           make list-combos
           make guide-dry-run </dev/null
 
+  docs:
+    name: Sphinx docs (cosmic theme)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write   # gh-pages publish on main
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install doc dependencies
+        run: pip install -r doc/requirements.txt
+
+      - name: Build (warnings are errors)
+        run: make -C doc html SPHINXOPTS="-W --keep-going"
+
+      - name: Upload HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-html
+          path: doc/build/html
+
+      - name: Publish to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./doc/build/html
+          force_orphan: true
+
   boot-components:
     name: u-boot + ATF from source (hosted)
     runs-on: ubuntu-24.04
