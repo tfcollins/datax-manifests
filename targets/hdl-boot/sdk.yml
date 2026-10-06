@@ -17,6 +17,15 @@ variables:
   ATF_CONSOLE: cadence0
 
 overlay:
+  # The hdl level's local helpers are re-declared below as this target's own
+  # entries (symlinks to ../hdl/) so they resolve against this directory. With
+  # upstream cim <= 1.2.4 a relative --source skips ancestor-level local
+  # copy_files (analogdevicesinc/cim#89), which would leave the workspace
+  # without build-hdl.sh / hdl.mk and therefore without make guide.
+  copy_files:
+    remove:
+      - scripts/build-hdl.sh
+      - hdl.mk
   variables:
     set:
       BUILD_BOOT_BIN: "true"
@@ -27,6 +36,12 @@ makefile_include:
   - include boot.mk
 
 copy_files:
+  - source: build-hdl.sh
+    dest: scripts/build-hdl.sh
+    cache: false
+  - source: hdl.mk
+    dest: hdl.mk
+    cache: false
   - source: build-uboot.sh
     dest: scripts/build-uboot.sh
     cache: false

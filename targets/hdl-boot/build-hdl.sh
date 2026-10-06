@@ -1,0 +1,1 @@
+../hdl/build-hdl.sh

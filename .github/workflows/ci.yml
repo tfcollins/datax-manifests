@@ -188,10 +188,13 @@ jobs:
           set -euo pipefail
           ws="$RUNNER_TEMP/ws-hdl-boot"
           rm -rf "$ws"
-          cim init --source "$PWD" -t hdl-boot --workspace "$ws" --yes
+          # relative --source on purpose: hdl-boot must stay usable despite cim#89
+          cim init --source . -t hdl-boot --workspace "$ws" --yes
           cd "$ws"
           cim makefile
           grep -q '^sdk-build: u-boot-xlnx arm-trusted-firmware' Makefile
+          make -n guide | grep -q 'build-hdl.sh --interactive'
+          make -n list-combos >/dev/null
           test -f scripts/build-uboot.sh && test -f scripts/build-atf.sh && test -f scripts/build-hdl.sh
           make boot-dry-run HDL_PROJECT=jupiter_sdr
           make boot-dry-run HDL_PROJECT=fmcomms2 HDL_BOARD=zed HDL_RELEASE=hdl_2023_r2
