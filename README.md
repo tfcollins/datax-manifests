@@ -63,7 +63,8 @@ Use `--source /path/to/datax-manifests` for a local checkout, or
 3. To build on another target use `extends: <target>` plus `overlay:` (see
    `targets/hdl-boot/sdk.yml`); cim merges both into one workspace. Use an
    absolute `--source` path when initializing locally — with `--source .`
-   upstream cim 1.2.4 does not find the base target's local `copy_files`.
+   upstream cim ≤ 1.2.4 skips the base target's local `copy_files`
+   ([cim#89](https://github.com/analogdevicesinc/cim/pull/89)).
 4. Document it in `targets/<name>/README.md` and add a row above.
 5. Add offline tests under `tests/` where the target carries scripts.
 

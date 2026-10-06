@@ -19,6 +19,14 @@ make sdk-build HDL_PROJECT=jupiter_sdr
 
 ## Quick start
 
+> **Local checkouts: use an absolute `--source`.** With upstream cim ≤ 1.2.4
+> `cim init --source . -t hdl-boot` silently skips the base `hdl` target's
+> `copy_files` (`build-hdl.sh`, `hdl.mk`) — you'll see
+> `! Source file ./targets/hdl/build-hdl.sh does not exist, skipping copy` and
+> `cim makefile` then has no `sdk-build` recipe. `--source "$PWD"` or a git URL
+> works. Fixed upstream in
+> [analogdevicesinc/cim#89](https://github.com/analogdevicesinc/cim/pull/89).
+
 ```bash
 cim init --target hdl-boot --source https://github.com/tfcollins/datax-manifests.git --workspace ~/cim-hdl-boot --install
 cd ~/cim-hdl-boot && cim makefile
@@ -38,7 +46,9 @@ generated Makefile has `u-boot-xlnx` and `arm-trusted-firmware` targets, and
 workspace-built files. The helper scripts are the same files as in the
 standalone [`u-boot-xlnx`](../u-boot-xlnx/README.md) and
 [`arm-trusted-firmware`](../arm-trusted-firmware/README.md) targets
-(symlinked in this directory).
+(symlinked in this directory, as is `os-dependencies.yml` from `u-boot-xlnx`;
+the `hdl` level's own `os-dependencies.yml` is installed too, since cim
+processes every level's file).
 
 | Variable | Default | Meaning |
 |---|---|---|
