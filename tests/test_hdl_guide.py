@@ -156,7 +156,10 @@ class HdlGuideTests(unittest.TestCase):
         result = self.run_script("--project", "fmcomms2", "--board", "zed", "--dry-run",
                                  "--release", "hdl_2023_r2", "--boot-bin", "true")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("/opt/Xilinx/2023.2/Vivado/settings64.sh", result.stdout)
+        # Auto-resolution probes several install prefixes, so only the version is
+        # host-independent: /opt/Xilinx/2023.2/Vivado or /opt/Xilinx/Vivado/2023.2 ...
+        self.assertRegex(result.stdout, r'source "/(opt|tools)/Xilinx/(2023\.2/Vivado|Vivado/2023\.2)/settings64\.sh"')
+        self.assertNotIn("2025.1", result.stdout)
         self.assertIn("build_boot_bin.sh", result.stdout)
         self.assertFalse((self.workspace / "hdl/projects/fmcomms2/zed/build").exists())
 
