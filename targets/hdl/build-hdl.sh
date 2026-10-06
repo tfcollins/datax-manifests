@@ -14,7 +14,6 @@
 # Text formatting
 BOLD="\033[1m"
 GREEN="\033[32m"
-BLUE="\033[34m"
 CYAN="\033[36m"
 YELLOW="\033[33m"
 RED="\033[31m"
@@ -245,7 +244,6 @@ is_valid_combo() {
 # Check tool availability in environment
 check_eda_tool_status() {
     local tool="$1"
-    local res=0
     case "$tool" in
         Vivado)
             if [ -n "${XILINX_VIVADO:-}" ] && [ -f "${XILINX_VIVADO}/settings64.sh" ]; then
@@ -738,7 +736,8 @@ EOF
 main() {
     local opt_proj=""
     local opt_board=""
-    local opt_jobs="-j$(nproc 2>/dev/null || echo 4)"
+    local opt_jobs
+    opt_jobs="-j$(nproc 2>/dev/null || echo 4)"
     local opt_dirname="build"
     local opt_boot_bin="false"
     local opt_uboot="download"
