@@ -406,6 +406,22 @@ check_eda_tool_status() {
     esac
 }
 
+# Hard check that the tool a build needs is actually installed. Unlike
+# check_eda_tool_status (informational, used by --check-tools) this exits.
+require_tool_installed() {
+    local tool="$1"
+    if check_eda_tool_status "$tool" >/dev/null 2>&1; then
+        return 0
+    fi
+    echo -e "${RED}[ERROR]${RESET} ${tool} not found: $(check_eda_tool_status "$tool" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')" >&2
+    case "$tool" in
+        Vivado)  echo "Set VIVADO=/path/to/Vivado (make VIVADO=... or --vivado ...), or install Vivado ${VIVADO_VERSION:-} for release ${HDL_RELEASE}." >&2 ;;
+        Quartus) echo "Set QUARTUS=/path/to/quartus or QUARTUS_ROOTDIR." >&2 ;;
+        Radiant) echo "Set LATTICE_RADIANT=/path/to/radiant." >&2 ;;
+    esac
+    exit 1
+}
+
 # Environment setup command generator for make/bash execution
 get_tool_env_setup() {
     local tool="$1"
@@ -794,6 +810,7 @@ execute_build() {
     if [ "$tool" = "Vivado" ]; then require_vivado; fi
     local env_setup
     env_setup=$(get_tool_env_setup "$tool")
+    if [ "$dry_run" != "true" ]; then require_tool_installed "$tool"; fi
 
     local project_board_dir project_name
     project_board_dir="$(get_project_dir "$proj" "$board")"
@@ -840,17 +857,29 @@ execute_build() {
     # Build execution
     echo -e "\n${BOLD}Starting build...${RESET}\n"
     
-    # Run build in a subshell with tool environment
+    # Run build in a subshell with the tool environment. The make environment
+    # inherited from the workspace Makefile is dropped first: command-line
+    # overrides such as VIVADO=auto or HDL_PROJECT=... travel in MAKEFLAGS and
+    # would clobber the hdl tree's own make variables (hdl uses its own
+    # VIVADO := vivado -mode batch ...), turning every IP build into
+    # "/bin/sh: auto: not found".
+    local rc=0
     bash -c "
         set -e
-        ${env_setup} 2>/dev/null || true
-        MAKEOVERRIDES= make --no-print-directory ${make_jobs} -C \"${project_board_dir}\" DIR_NAME=\"${dir_name}\"
+        unset MAKEFLAGS MAKEOVERRIDES MFLAGS MAKELEVEL VIVADO QUARTUS LATTICE_RADIANT
+        ${env_setup}
+        make --no-print-directory ${make_jobs} -C \"${project_board_dir}\" DIR_NAME=\"${dir_name}\"
         if [ \"${boot_bin_enabled}\" = \"true\" ]; then
-            echo -e \x27\n${BOLD}${CYAN}Generating BOOT.BIN (${boot_arch})...${RESET}\x27
+            echo -e \"\\n${BOLD}${CYAN}Generating BOOT.BIN [${boot_arch}]...${RESET}\"
             cd \"${project_board_dir}\"
             ${boot_bin_cmd}
         fi
-    "
+    " || rc=$?
+    if [ "$rc" -ne 0 ]; then
+        echo -e "\n${BOLD}${RED}[FAILED] HDL build of ${proj}${board:+/${board}} exited with status ${rc}.${RESET}" >&2
+        echo "Look for '*_ip.log' / 'vivado.log' under ${project_board_dir} and ${HDL_DIR}/library for details." >&2
+        exit "$rc"
+    fi
 
     echo -e "\n${BOLD}${GREEN}[SUCCESS] HDL Build completed successfully for ${proj}${board:+/${board}}!${RESET}\n"
 }
@@ -874,8 +903,9 @@ execute_clean() {
     local env_setup
     env_setup=$(get_tool_env_setup "$tool")
     bash -c "
+        unset MAKEFLAGS MAKEOVERRIDES MFLAGS MAKELEVEL VIVADO QUARTUS LATTICE_RADIANT
         ${env_setup} 2>/dev/null || true
-        MAKEOVERRIDES= make --no-print-directory -C \"${project_board_dir}\" DIR_NAME=\"${dir_name}\" clean
+        make --no-print-directory -C \"${project_board_dir}\" DIR_NAME=\"${dir_name}\" clean
     "
 }
 

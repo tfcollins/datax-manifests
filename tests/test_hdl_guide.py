@@ -328,6 +328,60 @@ class HdlGuideTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("CLEANED out in " + str(self.workspace / "hdl/projects/jupiter_sdr"), result.stdout)
 
+    def stub_vivado(self):
+        """Fake Vivado install so require_tool_installed passes without the real thing."""
+        viv = self.workspace / "fake-vivado"
+        viv.mkdir()
+        (viv / "settings64.sh").write_text("# stub\n")
+        return str(viv)
+
+    def test_build_failure_propagates(self):
+        board_dir = self.workspace / "hdl/projects/cn0561/de10nano"   # intel: no tool check needed
+        (board_dir / "Makefile").write_text("all:\n\t@echo BUILD FAILED; exit 3\n")
+        git(self.workspace / "hdl", "commit", "-qam", "failing stub")
+        result = self.run_script("--project", "cn0561", "--board", "de10nano")
+        self.assertNotEqual(result.returncode, 0)          # make reports 2 for a failed recipe
+        self.assertIn("[FAILED] HDL build of cn0561/de10nano exited with status 2", result.stderr)
+        self.assertNotIn("[SUCCESS]", result.stdout)
+
+    def test_make_command_line_overrides_do_not_leak_into_hdl(self):
+        # The hdl tree defines its own VIVADO; a workspace-level 'make sdk-build VIVADO=auto'
+        # puts VIVADO=auto into MAKEFLAGS and used to clobber it ("/bin/sh: auto: not found").
+        board_dir = self.workspace / "hdl/projects/fmcomms2/zcu102"
+        (board_dir / "Makefile").write_text(
+            "VIVADO := vivado -mode batch -source\ninclude ../../scripts/project-xilinx.mk\n"
+            "all:\n\t@echo HDL_VIVADO=[$(VIVADO)] HDL_PROJECT=[$(HDL_PROJECT)] FLAGS=[$(MAKEFLAGS)]\n")
+        (self.workspace / "hdl/projects/scripts/project-xilinx.mk").write_text("# stub\n")
+        git(self.workspace / "hdl", "add", "-A")
+        git(self.workspace / "hdl", "commit", "-qm", "echo stub")
+        viv = self.stub_vivado()
+        (self.workspace / "Makefile").write_text(
+            "VIVADO ?= auto\nHDL_PROJECT ?= fmcomms2\nHDL_BOARD ?= zcu102\n"
+            "sdk-build:\n\tbash scripts/build-hdl.sh --vivado \"$(VIVADO)\" --project \"$(HDL_PROJECT)\" --board \"$(HDL_BOARD)\" --jobs 1\n")
+        result = subprocess.run(["make", "-s", "sdk-build", f"VIVADO={viv}", "HDL_PROJECT=fmcomms2", "HDL_BOARD=zcu102"],
+                                cwd=self.workspace, text=True, capture_output=True, env=self.env)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("HDL_VIVADO=[vivado -mode batch -source]", result.stdout)
+        self.assertNotIn("VIVADO=", result.stdout.split("FLAGS=[")[1].split("]")[0])
+        # and with BOOT.BIN enabled the helper is actually invoked after the build
+        (self.workspace / "scripts/build_zynqmp_boot_bin.sh").write_text("#!/bin/bash\necho BOOTBIN-HELPER $1 $2 $3\n")
+        result = self.run_script("--project", "fmcomms2", "--board", "zcu102", "--vivado", viv, "--jobs", "1",
+                                 "--boot-bin", "true", "--boot-bin-uboot", "/u.elf", "--boot-bin-atf", "/b.elf")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Generating BOOT.BIN [zynqmp]", result.stdout)
+        self.assertIn("BOOTBIN-HELPER build/fmcomms2_zcu102.sdk/system_top.xsa /u.elf /b.elf", result.stdout)
+        self.assertIn("[SUCCESS]", result.stdout)
+
+    def test_missing_vivado_is_an_error_not_a_late_127(self):
+        result = self.run_script("--project", "fmcomms2", "--board", "zcu102", "--vivado", "/nonexistent/Vivado")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Vivado not found", result.stderr)
+        self.assertIn("VIVADO=", result.stderr)
+        self.assertNotIn("[SUCCESS]", result.stdout)
+        # dry-run still works without the tool installed
+        result = self.run_script("--project", "fmcomms2", "--board", "zcu102", "--vivado", "/nonexistent/Vivado", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_clean_of_missing_combo_is_a_noop(self):
         result = self.run_script("--project", "nope", "--board", "zed", "--clean")
         self.assertEqual(result.returncode, 0, result.stderr)
