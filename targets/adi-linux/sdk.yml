@@ -1,0 +1,24 @@
+# Kernel source/toolchain pins and validated caches are owned by the helper.
+variables:
+  KERNEL_RELEASE: "2023_R2"
+  KERNEL_PLATFORM: "zynq"
+  # Keep references deferred until make so command-line overrides stay isolated.
+  KERNEL_OUTPUT: "artifacts/${{ KERNEL_RELEASE }}/${{ KERNEL_PLATFORM }}"
+  KERNEL_JOBS: "4"
+makefile_include:
+  - include linux.mk
+copy_files:
+  - source: guide-linux.py
+    dest: scripts/guide-linux.py
+    cache: false
+  - source: linux.mk
+    dest: linux.mk
+    cache: false
+  - source: build-kernel.py
+    dest: scripts/build-kernel.py
+    cache: false
+build:
+  - >-
+    python3 scripts/build-kernel.py --release "${{ KERNEL_RELEASE }}"
+    --platform "${{ KERNEL_PLATFORM }}"
+    --output "${{ KERNEL_OUTPUT }}" --jobs "${{ KERNEL_JOBS }}"

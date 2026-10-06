@@ -1,0 +1,63 @@
+################################################################################
+# Toolchains section - download and install toolchains
+################################################################################
+# toolchains:
+
+
+################################################################################
+# High-level Makefile targets.
+################################################################################
+# Show how to get an extra makefile to include in the generated Makefile
+makefile_include:
+  - include extra.mk
+
+envsetup:
+  - echo "Setting up ${TARGET_NAME} environment"
+  - mkdir -p build/logs
+
+test:
+  - echo "Running tests for ${TARGET_NAME}"
+  - $(MAKE) -C build check $(MAKEFLAGS)
+
+clean:
+  - echo "Running clean for ${TARGET_NAME}"
+  - $(MAKE) -C build clean $(MAKEFLAGS)
+
+build:
+  - echo "Running build for ${TARGET_NAME}"
+  - $(MAKE) -C build all $(MAKEFLAGS)
+
+flash: |
+  - echo "Running build for ${TARGET_NAME}"
+
+# Use an yaml-anchor for common build steps
+common_echo_build: &echo_build
+  - "@echo ✓ Built as part of SOC projects - no standalone build"
+
+################################################################################
+# Copy files section - download files to be used during installation
+################################################################################
+# copy_files:
+#   - source: patches/00*.patch
+#     dest: patches
+
+
+################################################################################
+# Gits for the project
+################################################################################
+gits:
+  - name: example-repo
+    url: https://github.com/example/repo.git
+    commit: main
+    build:
+      - echo "Building example repo"
+      - make all
+
+  - name: example-lib
+    url: https://github.com/example/lib.git
+    commit: v1.0.0
+    depends_on:
+      - example-repo
+    build:
+      - echo "Building example lib"
+      - cmake . && make

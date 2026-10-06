@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+
+# Local cim workspaces initialized next to the manifests
+/ws-*/
+/workspace*/

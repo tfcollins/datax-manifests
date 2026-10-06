@@ -1,0 +1,45 @@
+variables:
+  # Branch, tag or commit of analogdevicesinc/hdl to build from. scripts/build-hdl.sh
+  # switches the hdl/ clone to this ref before inspecting or building.
+  HDL_RELEASE: hdl_2026_r1
+  # Vivado install dir; "auto" selects the version validated for HDL_RELEASE
+  # (hdl_2023_r2 -> 2023.2, hdl_2026_r1 -> 2025.1).
+  VIVADO: auto
+  QUARTUS: /opt/intelFPGA_pro/23.4/quartus
+  LATTICE_RADIANT: /usr/local/radiant
+  MAKE_JOBS: -j$$(nproc)
+  HDL_PROJECT: fmcomms2
+  HDL_BOARD: zcu102
+  DIR_NAME: build
+  BUILD_BOOT_BIN: "false"
+  BOOT_BIN_UBOOT: download
+
+makefile_include:
+  - include hdl.mk
+
+copy_files:
+  - source: build-hdl.sh
+    dest: scripts/build-hdl.sh
+    cache: false
+  - source: hdl.mk
+    dest: hdl.mk
+    cache: false
+  - source: https://raw.githubusercontent.com/analogdevicesinc/wiki-scripts/main/zynq_boot_bin/build_boot_bin.sh
+    dest: scripts/build_boot_bin.sh
+    cache: true
+
+gits:
+  - name: hdl
+    url: https://github.com/analogdevicesinc/hdl.git
+    commit: hdl_2026_r1
+
+build:
+  - >-
+    bash scripts/build-hdl.sh --release "${{ HDL_RELEASE }}" --vivado "${{ VIVADO }}"
+    --project "${{ HDL_PROJECT }}" --board "${{ HDL_BOARD }}" --jobs "${{ MAKE_JOBS }}"
+    --dir-name "${{ DIR_NAME }}" --boot-bin "${{ BUILD_BOOT_BIN }}" --boot-bin-uboot "${{ BOOT_BIN_UBOOT }}"
+
+clean:
+  - >-
+    bash scripts/build-hdl.sh --release "${{ HDL_RELEASE }}" --vivado "${{ VIVADO }}"
+    --project "${{ HDL_PROJECT }}" --board "${{ HDL_BOARD }}" --dir-name "${{ DIR_NAME }}" --clean

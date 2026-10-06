@@ -1,0 +1,12 @@
+kernel_deps: &kernel_deps
+  - python3
+  - build-essential
+  - bc
+  - bison
+  - flex
+  - libssl-dev
+  - libelf-dev
+linux-x86_64:
+  ubuntu-24.04:
+    command: "apt-get install"
+    packages: *kernel_deps

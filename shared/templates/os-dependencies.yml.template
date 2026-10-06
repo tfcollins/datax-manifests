@@ -1,0 +1,65 @@
+# YAML anchors for reusable package lists
+ubuntu_packages: &ubuntu_packages
+  - build-essential
+  - cmake
+  - curl
+  - git
+  - libboost-all-dev
+  - libssl-dev
+  - pkg-config
+  - python3
+  - python3-pip
+  - vim
+
+fedora_packages: &fedora_packages
+  - cmake
+  - curl
+  - gcc
+  - gcc-c++
+  - git
+  - boost-devel
+  - openssl-devel
+  - pkgconfig
+  - python3
+  - python3-pip
+  - vim
+
+# Linux x86_64 (Intel/AMD) dependencies
+linux-x86_64:
+  ubuntu-22.04:
+    command: "apt install"
+    packages: *ubuntu_packages
+  
+  fedora-42:
+    command: "dnf install"
+    packages: *fedora_packages
+
+# Linux ARM64 (Apple Silicon, ARM servers) dependencies  
+linux-aarch64:
+  ubuntu-22.04:
+    command: "apt install"
+    packages: *ubuntu_packages
+  
+  fedora-42:
+    command: "dnf install"
+    packages: *fedora_packages
+
+# Backward compatibility - generic linux (defaults to x86_64 behavior)
+linux:
+  ubuntu-22.04:
+    command: "apt install"
+    packages: *ubuntu_packages
+  
+  fedora-42:
+    command: "dnf install"
+    packages: *fedora_packages
+
+# MaxOS dependencies
+macos:
+  macos-any:
+    command: "brew install"
+    packages:
+      - cmake
+      - git
+      - python3
+      - vim

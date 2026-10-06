@@ -1,0 +1,33 @@
+# Python package dependencies for different softwware development profiles.
+
+profiles:
+  # Documentation profile - packages for building and serving docs
+  docs:
+    packages:
+      - sphinx
+      - sphinx-rtd-theme
+      - myst-parser
+      - sphinx-autobuild
+      
+  # Development profile - docs + development tools
+  dev:
+    packages:
+      - pytest
+      - black
+      - flake8
+      
+  # Full profile - everything
+  full:
+    packages:
+      - sphinx
+      - sphinx-rtd-theme
+      - myst-parser
+      - sphinx-autobuild
+      - pytest
+      - black
+      - flake8
+      - mypy
+      - pre-commit
+
+# Default profile to use when none specified
+default: docs
