@@ -1,0 +1,38 @@
+variables:
+  # Board preset selecting the u-boot-xlnx ref, defconfig, device tree and
+  # cross compiler (scripts/build-uboot.sh --list shows the table), or "auto"
+  # to derive it from UBOOT_HDL_PROJECT / UBOOT_HDL_BOARD.
+  UBOOT_BOARD: zcu102
+  # HDL release the u-boot should match; picks the xlnx_rebase_* tag for
+  # Xilinx reference boards (hdl_2023_r2 -> 2023.2, hdl_2026_r1 -> 2025.1).
+  UBOOT_RELEASE: hdl_2026_r1
+  # Explicit overrides for boards without a preset (empty = use the preset).
+  UBOOT_REF: ""
+  UBOOT_DEFCONFIG: ""
+  UBOOT_DEVICE_TREE: ""
+  UBOOT_CROSS_COMPILE: ""
+  UBOOT_HDL_PROJECT: ""
+  UBOOT_HDL_BOARD: ""
+  UBOOT_JOBS: $$(nproc)
+
+makefile_include:
+  - include uboot.mk
+
+copy_files:
+  - source: build-uboot.sh
+    dest: scripts/build-uboot.sh
+    cache: false
+  - source: uboot.mk
+    dest: uboot.mk
+    cache: false
+
+gits:
+  - name: u-boot-xlnx
+    url: https://github.com/analogdevicesinc/u-boot-xlnx.git
+    commit: xlnx_rebase_v2025.01_2025.1
+
+build:
+  - $(MAKE) uboot-build
+
+clean:
+  - $(MAKE) uboot-clean

@@ -147,7 +147,7 @@ ensure_release() {
         exit 1
     fi
 
-    echo -e "${CYAN}[INFO]${RESET} Switching hdl/ to release '${rel}'..."
+    echo -e "${CYAN}[INFO]${RESET} Switching hdl/ to release '${rel}'..." >&2
     local fetched="false"
     if git -C "$HDL_DIR" fetch -q --depth 1 origin "$rel" 2>/dev/null \
         || git -C "$HDL_DIR" fetch -q origin "$rel" 2>/dev/null \
@@ -861,6 +861,7 @@ Inspection & Information Options:
   --list-tools               List carrier boards and projects grouped by EDA tool (Vivado, Quartus, Radiant)
   --check-tools              Check presence of Vivado, Quartus, and Radiant in local environment
                              (exits non-zero if Vivado cannot be resolved for the release)
+  --boot-arch                With --project/--board: print zynq, zynqmp or versal (or "none", exit 1)
   -h, --help                 Show this help message
 
 Examples:
@@ -1002,6 +1003,10 @@ main() {
                 opt_action="check-tools"
                 shift
                 ;;
+            --boot-arch)
+                opt_action="boot-arch"
+                shift
+                ;;
             -h|--help)
                 show_help
                 return 0
@@ -1044,6 +1049,20 @@ main() {
         check-tools)
             cmd_check_tools
             return $?
+            ;;
+        boot-arch)
+            # Machine-readable: zynq | zynqmp | versal, or "none" (exit 1)
+            if [ -z "$opt_proj" ]; then
+                echo -e "${RED}[ERROR]${RESET} --boot-arch needs --project (and --board for carrier designs)." >&2
+                exit 1
+            fi
+            if is_carrierless_project "$opt_proj"; then opt_board=""; fi
+            if arch="$(get_boot_arch "$opt_proj" "$opt_board")"; then
+                echo "$arch"
+                return 0
+            fi
+            echo "none"
+            return 1
             ;;
     esac
 

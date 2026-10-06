@@ -147,6 +147,13 @@ make sdk-build HDL_PROJECT=fmcomms2 HDL_BOARD=zcu102 BUILD_BOOT_BIN=true BOOT_BI
 
 Output lands in `hdl/projects/<...>/output_boot_bin/BOOT.BIN`.
 
+To build u-boot and BL31 from source instead of downloading ADI's prebuilt
+blobs, use the [`hdl-boot`](../hdl-boot/README.md) target (same workspace,
+`extends: hdl`), or build them separately with
+[`u-boot-xlnx`](../u-boot-xlnx/README.md) /
+[`arm-trusted-firmware`](../arm-trusted-firmware/README.md) and pass the
+paths via `BOOT_BIN_UBOOT=` / `BOOT_BIN_ATF=`.
+
 ## Guided wizard
 
 `make guide` (or `./scripts/build-hdl.sh`) walks through:

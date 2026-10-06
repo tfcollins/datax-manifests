@@ -109,14 +109,14 @@ class HdlGuideTests(unittest.TestCase):
     def test_default_release_lists_without_switching(self):
         result = self.run_script("--list")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("Switching hdl/", result.stdout)
+        self.assertNotIn("Switching hdl/", result.stderr)
         self.assertEqual(self.projects_listed(result.stdout), set(RELEASES["hdl_2026_r1"]))
         self.assertEqual(self.head_branch(), "hdl_2026_r1")
 
     def test_release_flag_switches_checkout_and_matrix(self):
         result = self.run_script("--release", "hdl_2023_r2", "--list")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Switching hdl/ to release 'hdl_2023_r2'", result.stdout)
+        self.assertIn("Switching hdl/ to release 'hdl_2023_r2'", result.stderr)
         self.assertEqual(self.projects_listed(result.stdout), set(RELEASES["hdl_2023_r2"]))
         self.assertEqual(self.head_branch(), "hdl_2023_r2")
         # Flag order must not matter and switching back must work

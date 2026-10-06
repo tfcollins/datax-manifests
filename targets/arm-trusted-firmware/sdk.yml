@@ -1,0 +1,33 @@
+variables:
+  # zynqmp or versal
+  ATF_PLAT: zynqmp
+  # HDL/Vivado release the firmware should match; selects the xilinx-v* tag
+  # (hdl_2023_r2 -> xilinx-v2023.2, hdl_2026_r1 -> xilinx-v2025.1).
+  ATF_RELEASE: hdl_2026_r1
+  # Explicit tag/branch/sha override (empty = derive from ATF_RELEASE).
+  ATF_REF: ""
+  # ZynqMP UART used by BL31: cadence0 (default) or cadence1
+  ATF_CONSOLE: cadence0
+  ATF_JOBS: $$(nproc)
+
+makefile_include:
+  - include atf.mk
+
+copy_files:
+  - source: build-atf.sh
+    dest: scripts/build-atf.sh
+    cache: false
+  - source: atf.mk
+    dest: atf.mk
+    cache: false
+
+gits:
+  - name: arm-trusted-firmware
+    url: https://github.com/Xilinx/arm-trusted-firmware.git
+    commit: xilinx-v2025.1
+
+build:
+  - $(MAKE) atf-build
+
+clean:
+  - $(MAKE) atf-clean

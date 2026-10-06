@@ -1,0 +1,26 @@
+uboot_deps: &uboot
+  - build-essential
+  - git
+  - make
+  - bc
+  - bison
+  - flex
+  - swig
+  - python3-dev
+  - python3-setuptools
+  - python3-pyelftools
+  - libssl-dev
+  - libgnutls28-dev
+  - uuid-dev
+  - device-tree-compiler
+  # Zynq-7000 and ZynqMP cross compilers
+  - gcc-arm-linux-gnueabihf
+  - gcc-aarch64-linux-gnu
+
+linux-x86_64:
+  ubuntu-22.04:
+    command: "apt-get install"
+    packages: *uboot
+  ubuntu-24.04:
+    command: "apt-get install"
+    packages: *uboot

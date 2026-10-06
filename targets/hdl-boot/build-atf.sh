@@ -1,0 +1,1 @@
+../arm-trusted-firmware/build-atf.sh

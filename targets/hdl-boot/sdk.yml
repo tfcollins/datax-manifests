@@ -1,0 +1,61 @@
+# ADI HDL + BOOT.BIN with u-boot and ATF built from source in the same workspace.
+# Inherits everything from the hdl target; adds the u-boot-xlnx and
+# arm-trusted-firmware clones and builds them before sdk-build, so
+# BOOT.BIN uses locally built u-boot.elf / bl31.elf instead of downloads.
+extends: hdl
+
+variables:
+  # "auto" derives the u-boot preset from HDL_PROJECT / HDL_BOARD
+  # (see scripts/build-uboot.sh --list); set a preset name to force one.
+  UBOOT_BOARD: auto
+  UBOOT_REF: ""
+  UBOOT_DEFCONFIG: ""
+  UBOOT_DEVICE_TREE: ""
+  # "auto" derives zynqmp/versal from the design (Zynq-7000 needs no ATF)
+  ATF_PLAT: auto
+  ATF_REF: ""
+  ATF_CONSOLE: cadence0
+
+overlay:
+  variables:
+    set:
+      BUILD_BOOT_BIN: "true"
+      BOOT_BIN_UBOOT: ${{ WORKSPACE }}/u-boot-xlnx/u-boot.elf
+      BOOT_BIN_ATF: ${{ WORKSPACE }}/arm-trusted-firmware/bl31.elf
+
+makefile_include:
+  - include boot.mk
+
+copy_files:
+  - source: build-uboot.sh
+    dest: scripts/build-uboot.sh
+    cache: false
+  - source: build-atf.sh
+    dest: scripts/build-atf.sh
+    cache: false
+  - source: boot.mk
+    dest: boot.mk
+    cache: false
+
+gits:
+  - name: u-boot-xlnx
+    url: https://github.com/analogdevicesinc/u-boot-xlnx.git
+    commit: xlnx_rebase_v2025.01_2025.1
+    build:
+      - $(MAKE) boot-uboot
+  - name: arm-trusted-firmware
+    url: https://github.com/Xilinx/arm-trusted-firmware.git
+    commit: xilinx-v2025.1
+    build:
+      - $(MAKE) boot-atf
+
+build:
+  commands:
+    - >-
+      bash scripts/build-hdl.sh --release "${{ HDL_RELEASE }}" --vivado "${{ VIVADO }}"
+      --project "${{ HDL_PROJECT }}" --board "${{ HDL_BOARD }}" --jobs "${{ MAKE_JOBS }}"
+      --dir-name "${{ DIR_NAME }}" --boot-bin "${{ BUILD_BOOT_BIN }}" --boot-bin-uboot "${{ BOOT_BIN_UBOOT }}"
+      --boot-bin-atf "${{ BOOT_BIN_ATF }}"
+  depends_on:
+    - u-boot-xlnx
+    - arm-trusted-firmware

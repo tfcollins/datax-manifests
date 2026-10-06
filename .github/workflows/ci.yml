@@ -40,7 +40,8 @@ jobs:
       - name: shellcheck
         run: |
           sudo apt-get install -y -qq shellcheck >/dev/null
-          shellcheck -S warning targets/hdl/build-hdl.sh .github/scripts/*.sh
+          shellcheck -S warning targets/hdl/build-hdl.sh targets/u-boot-xlnx/build-uboot.sh \
+            targets/arm-trusted-firmware/build-atf.sh .github/scripts/*.sh
 
       - name: actionlint
         uses: raven-actions/actionlint@v2
@@ -71,20 +72,74 @@ jobs:
       - name: Targets are discoverable
         run: |
           set -euo pipefail
-          cim list-targets --source . | tee targets.txt
-          for t in hdl adi-linux; do grep -q -- "- $t\$" targets.txt; done
+          cim list-targets --source "$PWD" | tee targets.txt
+          for t in hdl hdl-boot adi-linux u-boot-xlnx arm-trusted-firmware; do grep -q -- "- $t\$" targets.txt; done
 
       - name: adi-linux tests
-        run: python3 -m unittest discover -s tests -p 'test_[al]*.py' -v
+        run: python3 -m unittest discover -s tests -p 'test_[alb]*.py' -v
 
       - name: Smoke-init adi-linux
         run: |
           set -euo pipefail
-          cim init --source . -t adi-linux --workspace "$RUNNER_TEMP/ws-linux" --yes
+          cim init --source "$PWD" -t adi-linux --workspace "$RUNNER_TEMP/ws-linux" --yes
           cd "$RUNNER_TEMP/ws-linux"
           cim makefile
           make list-combos
           make guide-dry-run </dev/null
+
+  boot-components:
+    name: u-boot + ATF from source (hosted)
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: jupiter_sdr
+            release: hdl_2026_r1
+            plat: zynqmp
+          - board: zed
+            release: hdl_2023_r2
+            plat: ""        # Zynq-7000: no ATF
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install upstream cim
+        run: bash .github/scripts/install-cim.sh "$CIM_VERSION"
+
+      - name: Host packages (from the targets' os-dependencies.yml)
+        run: |
+          set -euo pipefail
+          mapfile -t pkgs < <(python3 -c "import yaml; d=yaml.safe_load(open('targets/u-boot-xlnx/os-dependencies.yml')); print('\n'.join(d['linux-x86_64']['ubuntu-24.04']['packages']))")
+          sudo apt-get update -qq && sudo apt-get install -y -qq "${pkgs[@]}" >/dev/null
+
+      - name: Build u-boot.elf (${{ matrix.board }}, ${{ matrix.release }})
+        run: |
+          set -euo pipefail
+          cim init --source "$PWD" -t u-boot-xlnx --workspace "$RUNNER_TEMP/ws-uboot" --yes
+          cd "$RUNNER_TEMP/ws-uboot"
+          cim makefile
+          make uboot-dry-run UBOOT_BOARD=${{ matrix.board }} UBOOT_RELEASE=${{ matrix.release }}
+          make sdk-build UBOOT_BOARD=${{ matrix.board }} UBOOT_RELEASE=${{ matrix.release }}
+          file u-boot-xlnx/u-boot.elf | tee /dev/stderr | grep -q ELF
+
+      - name: Build bl31.elf (${{ matrix.plat }}, ${{ matrix.release }})
+        if: matrix.plat != ''
+        run: |
+          set -euo pipefail
+          cim init --source "$PWD" -t arm-trusted-firmware --workspace "$RUNNER_TEMP/ws-atf" --yes
+          cd "$RUNNER_TEMP/ws-atf"
+          cim makefile
+          make sdk-build ATF_PLAT=${{ matrix.plat }} ATF_RELEASE=${{ matrix.release }}
+          file arm-trusted-firmware/bl31.elf | tee /dev/stderr | grep -q 'ARM aarch64'
+
+      - name: Upload boot components
+        uses: actions/upload-artifact@v4
+        with:
+          name: boot-components-${{ matrix.board }}-${{ matrix.release }}
+          path: |
+            ${{ runner.temp }}/ws-uboot/u-boot-xlnx/u-boot.elf
+            ${{ runner.temp }}/ws-atf/arm-trusted-firmware/bl31.elf
+          if-no-files-found: error
 
   hdl:
     name: hdl tests + Vivado (hdl-dev-2)
@@ -111,7 +166,7 @@ jobs:
           set -euo pipefail
           ws="$RUNNER_TEMP/ws-hdl"
           rm -rf "$ws"
-          cim init --source . -t hdl --workspace "$ws" --yes
+          cim init --source "$PWD" -t hdl --workspace "$ws" --yes
           cd "$ws"
           cim makefile
           # Both Vivado versions are installed on hdl-dev-2: resolution must succeed.
@@ -122,6 +177,21 @@ jobs:
           test "$(git -C hdl rev-parse --abbrev-ref HEAD)" = hdl_2023_r2
           bash scripts/build-hdl.sh --release hdl_2023_r2 --project fmcomms2 --board zed --dry-run
           bash scripts/build-hdl.sh --release hdl_2026_r1 --project fmcomms2 --board zcu102 --dry-run
+
+      - name: Smoke-init hdl-boot (extends hdl)
+        run: |
+          set -euo pipefail
+          ws="$RUNNER_TEMP/ws-hdl-boot"
+          rm -rf "$ws"
+          cim init --source "$PWD" -t hdl-boot --workspace "$ws" --yes
+          cd "$ws"
+          cim makefile
+          grep -q '^sdk-build: u-boot-xlnx arm-trusted-firmware' Makefile
+          test -f scripts/build-uboot.sh && test -f scripts/build-atf.sh && test -f scripts/build-hdl.sh
+          make boot-dry-run HDL_PROJECT=jupiter_sdr
+          make boot-dry-run HDL_PROJECT=fmcomms2 HDL_BOARD=zed HDL_RELEASE=hdl_2023_r2
+          make -n sdk-build HDL_PROJECT=jupiter_sdr | grep -- '--boot-bin-uboot ".*/u-boot-xlnx/u-boot.elf"'
+          rm -rf "$ws"
 
       - name: Real Vivado build (workflow_dispatch only)
         if: github.event_name == 'workflow_dispatch' && inputs.build

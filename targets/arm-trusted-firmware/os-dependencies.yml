@@ -1,0 +1,13 @@
+atf_deps: &atf
+  - build-essential
+  - git
+  - make
+  - gcc-aarch64-linux-gnu
+
+linux-x86_64:
+  ubuntu-22.04:
+    command: "apt-get install"
+    packages: *atf
+  ubuntu-24.04:
+    command: "apt-get install"
+    packages: *atf
