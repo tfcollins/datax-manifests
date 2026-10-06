@@ -17,7 +17,7 @@ RELEASES = {
     "hdl_2023_r2": {"fmcomms2": {"zed": "xilinx", "zcu102": "xilinx"},
                     "ad9361": {"a10soc": "intel"},
                     "pluto": "xilinx"},
-    "hdl_2026_r1": {"fmcomms2": {"zcu102": "xilinx"},
+    "hdl_2026_r1": {"fmcomms2": {"zcu102": "xilinx", "kcu105": "xilinx"},
                     "ad9081_fmca_ebz": {"vck190": "xilinx"},
                     "cn0561": {"de10nano": "intel"},
                     "jupiter_sdr": "xilinx"},
@@ -65,7 +65,8 @@ def make_upstream(path):
         (path / "projects/scripts/adi_project_xilinx.tcl").write_text(
             'if [regexp "_zed" $project_name] {\n  set device "xc7z020clg484-1"\n}\n'
             'if [regexp "_zcu102" $project_name] {\n  set device "xczu9eg-ffvb1156-2-e"\n}\n'
-            'if [regexp "_vck190" $project_name] {\n  set device "xcvc1902-vsva2197-2MP-e-S"\n}\n')
+            'if [regexp "_vck190" $project_name] {\n  set device "xcvc1902-vsva2197-2MP-e-S"\n}\n'
+            'if [regexp "_kcu105" $project_name] {\n  set device "xcku040-ffva1156-2-e"\n}\n')
         (path / "RELEASE").write_text(release + "\n")
         git(path, "add", "-A")
         git(path, "commit", "-qm", release)
@@ -88,6 +89,8 @@ class HdlGuideTests(unittest.TestCase):
         git(self.workspace / "hdl", "config", "user.name", "test")
         (self.workspace / "scripts").mkdir()
         shutil.copy(SCRIPT, self.workspace / "scripts" / "build-hdl.sh")
+        for helper in ("build_boot_bin.sh", "build_zynqmp_boot_bin.sh", "build_versal_boot_bin.sh"):
+            (self.workspace / "scripts" / helper).write_text("#!/bin/bash\necho STUB $0 $@\n")
         self.env = {k: v for k, v in os.environ.items()
                     if k not in ("HDL_RELEASE", "VIVADO", "XILINX_VIVADO")}
 
@@ -186,7 +189,7 @@ class HdlGuideTests(unittest.TestCase):
         # host-independent: /opt/Xilinx/2023.2/Vivado or /opt/Xilinx/Vivado/2023.2 ...
         self.assertRegex(result.stdout, r'source "/(opt|tools)/Xilinx/(2023\.2/Vivado|Vivado/2023\.2)/settings64\.sh"')
         self.assertNotIn("2025.1", result.stdout)
-        self.assertIn("build_boot_bin.sh", result.stdout)
+        self.assertIn("scripts/build_boot_bin.sh", result.stdout)   # zed is Zynq-7000
         self.assertFalse((self.workspace / "hdl/projects/fmcomms2/zed/build").exists())
 
     def test_carrierless_project_listed_and_described(self):
@@ -236,15 +239,19 @@ class HdlGuideTests(unittest.TestCase):
         result = self.wizard(["", "jupiter_sdr", "", "", "y", "n"])
         self.assertEqual(result.returncode, 0, result.stderr)
         # (read -p prompts are not emitted on a non-tty stdin, so assert on outcomes)
-        self.assertIn("Generate BOOT.BIN:     true", result.stdout)
+        self.assertIn("Generate BOOT.BIN:     true (zynqmp)", result.stdout)
         self.assertIn("HDL_PROJECT=jupiter_sdr DIR_NAME=build", result.stdout)
         self.assertIn("BUILD_BOOT_BIN=true sdk-build", result.stdout)
         # Carrier design on a Zynq board via the lookup table
         result = self.wizard(["", "fmcomms2", "zcu102", "", "", "y", "n"])
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Generate BOOT.BIN:     true", result.stdout)
-        # Versal is not Zynq: no prompt, flag stays false, confirm consumes "n"
-        result = self.wizard(["", "ad9081_fmca_ebz", "vck190", "", "", "n"])
+        # Versal boots from a BOOT.BIN too
+        result = self.wizard(["", "ad9081_fmca_ebz", "vck190", "", "", "y", "n"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Generate BOOT.BIN:     true (versal)", result.stdout)
+        # Kintex has no boot ROM: no prompt, flag stays false, confirm consumes "n"
+        result = self.wizard(["", "fmcomms2", "kcu105", "", "", "n"])
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("not applicable", result.stdout)
         self.assertIn("Generate BOOT.BIN:     false", result.stdout)
@@ -253,13 +260,63 @@ class HdlGuideTests(unittest.TestCase):
         self.assertIn("not applicable", result.stdout)
         self.assertIn("Generate BOOT.BIN:     false", result.stdout)
 
-    def test_boot_bin_warning_for_non_zynq_build(self):
-        result = self.run_script("--project", "ad9081_fmca_ebz", "--board", "vck190",
-                                 "--dry-run", "--boot-bin", "true")
+    def boot_bin_line(self, *args):
+        result = self.run_script(*args, "--dry-run", "--boot-bin", "true", "--boot-bin-uboot",
+                                 "/u/u-boot.elf", "--boot-bin-atf", "/a/bl31.elf")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("does not appear to target a Zynq", result.stdout)
+        lines = [l for l in result.stdout.splitlines() if l.startswith("3) ")]
+        return result.stdout, (lines[0] if lines else "")
+
+    def test_boot_bin_helper_matches_boot_architecture(self):
+        # Zynq-7000 -> build_boot_bin.sh (xsa, u-boot)
+        out, line = self.boot_bin_line("--project", "pluto", "--release", "hdl_2023_r2")
+        self.assertIn('scripts/build_boot_bin.sh" "build/pluto.sdk/system_top.xsa" "/u/u-boot.elf"', line)
+        self.assertNotIn("bl31", line)
+        self.assertIn("BOOT.BIN:          zynq", out)
+        # ZynqMP (carrier-less, part from system_project.tcl) -> build_zynqmp_boot_bin.sh (xsa, u-boot, atf)
+        out, line = self.boot_bin_line("--project", "jupiter_sdr")
+        self.assertIn('scripts/build_zynqmp_boot_bin.sh" "build/jupiter_sdr.sdk/system_top.xsa" "/u/u-boot.elf" "/a/bl31.elf"', line)
+        self.assertIn("BOOT.BIN:          zynqmp", out)
+        # ZynqMP carrier design via the board table
+        out, line = self.boot_bin_line("--project", "fmcomms2", "--board", "zcu102")
+        self.assertIn('build_zynqmp_boot_bin.sh" "build/fmcomms2_zcu102.sdk/system_top.xsa"', line)
+        # Versal -> build_versal_boot_bin.sh
+        out, line = self.boot_bin_line("--project", "ad9081_fmca_ebz", "--board", "vck190")
+        self.assertIn("build_versal_boot_bin.sh", line)
+        self.assertIn("BOOT.BIN:          versal", out)
+        # Kintex has no boot ROM: BOOT.BIN silently skipped with a warning naming the device
+        out, line = self.boot_bin_line("--project", "fmcomms2", "--board", "kcu105")
+        self.assertEqual(line, "")
+        self.assertIn("does not target a Zynq / ZynqMP / Versal device (device: xcku040", out)
+        # Intel
+        out, line = self.boot_bin_line("--project", "cn0561", "--board", "de10nano")
+        self.assertEqual(line, "")
+
+    def test_boot_bin_atf_download_warns_without_cross_compiler(self):
+        # Hide the cross-compiler by shadowing PATH with an empty dir plus a stub git/make
+        bindir = self.workspace / "bin"
+        bindir.mkdir()
+        for tool in ("bash", "git", "grep", "sed", "awk", "head", "tr", "basename", "dirname", "find", "sort", "nproc", "column", "cat", "printf", "unzip"):
+            real = shutil.which(tool)
+            if real:
+                (bindir / tool).symlink_to(real)
+        result = self.run_script("--project", "jupiter_sdr", "--dry-run", "--boot-bin", "true",
+                                 env={"PATH": str(bindir)})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("needs aarch64-linux-gnu-gcc", result.stdout)
+        # Explicit bl31.elf never warns, and Zynq-7000 never needs ATF
+        result = self.run_script("--project", "jupiter_sdr", "--dry-run", "--boot-bin", "true",
+                                 "--boot-bin-atf", "/a/bl31.elf")
+        self.assertNotIn("needs aarch64-linux-gnu-gcc", result.stdout)
+        result = self.run_script("--project", "pluto", "--release", "hdl_2023_r2", "--dry-run",
+                                 "--boot-bin", "true")
+        self.assertNotIn("needs aarch64-linux-gnu-gcc", result.stdout)
+
+    def test_missing_boot_bin_helper_is_an_error(self):
+        (self.workspace / "scripts/build_zynqmp_boot_bin.sh").unlink()
         result = self.run_script("--project", "jupiter_sdr", "--dry-run", "--boot-bin", "true")
-        self.assertNotIn("does not appear", result.stdout)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("build_zynqmp_boot_bin.sh is missing", result.stderr)
 
     def test_carrierless_clean(self):
         mf = self.workspace / "hdl/projects/jupiter_sdr/Makefile"

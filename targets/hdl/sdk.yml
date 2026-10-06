@@ -11,8 +11,13 @@ variables:
   HDL_PROJECT: fmcomms2
   HDL_BOARD: zcu102
   DIR_NAME: build
+  # BOOT.BIN inputs for scripts/build_*boot_bin.sh (from analogdevicesinc/wiki-scripts).
+  # BOOT_BIN_UBOOT: u-boot.elf path or "download" (ADI prebuilt for known carriers).
+  # BOOT_BIN_ATF: ZynqMP/Versal only - bl31.elf path, arm-trusted-firmware source
+  # dir, or "download" (clone + build; needs aarch64-linux-gnu-gcc).
   BUILD_BOOT_BIN: "false"
   BOOT_BIN_UBOOT: download
+  BOOT_BIN_ATF: download
 
 makefile_include:
   - include hdl.mk
@@ -27,6 +32,12 @@ copy_files:
   - source: https://raw.githubusercontent.com/analogdevicesinc/wiki-scripts/main/zynq_boot_bin/build_boot_bin.sh
     dest: scripts/build_boot_bin.sh
     cache: true
+  - source: https://raw.githubusercontent.com/analogdevicesinc/wiki-scripts/main/zynqmp_boot_bin/build_zynqmp_boot_bin.sh
+    dest: scripts/build_zynqmp_boot_bin.sh
+    cache: true
+  - source: https://raw.githubusercontent.com/analogdevicesinc/wiki-scripts/main/versal_boot_bin/build_versal_boot_bin.sh
+    dest: scripts/build_versal_boot_bin.sh
+    cache: true
 
 gits:
   - name: hdl
@@ -38,6 +49,7 @@ build:
     bash scripts/build-hdl.sh --release "${{ HDL_RELEASE }}" --vivado "${{ VIVADO }}"
     --project "${{ HDL_PROJECT }}" --board "${{ HDL_BOARD }}" --jobs "${{ MAKE_JOBS }}"
     --dir-name "${{ DIR_NAME }}" --boot-bin "${{ BUILD_BOOT_BIN }}" --boot-bin-uboot "${{ BOOT_BIN_UBOOT }}"
+    --boot-bin-atf "${{ BOOT_BIN_ATF }}"
 
 clean:
   - >-

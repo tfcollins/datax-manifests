@@ -77,8 +77,9 @@ name is used as-is, so your own commits are never reset — run
 | `HDL_BOARD` | `zcu102` | Carrier board under the project |
 | `MAKE_JOBS` | `-j$(nproc)` | Parallel jobs passed to the project make |
 | `DIR_NAME` | `build` | Build output directory name inside the project |
-| `BUILD_BOOT_BIN` | `false` | Generate BOOT.BIN after a Zynq/ZynqMP build |
-| `BOOT_BIN_UBOOT` | `download` | U-Boot source for `build_boot_bin.sh` |
+| `BUILD_BOOT_BIN` | `false` | Generate BOOT.BIN after a Zynq / ZynqMP / Versal build |
+| `BOOT_BIN_UBOOT` | `download` | `u-boot.elf` path, or `download` ADI's prebuilt |
+| `BOOT_BIN_ATF` | `download` | ZynqMP/Versal: `bl31.elf` path, ATF source dir, or `download` (build it) |
 
 ## EDA tool matrix
 
@@ -109,17 +110,42 @@ for both layouts.
 
 ### BOOT.BIN
 
-`BUILD_BOOT_BIN=true` (or the wizard's prompt) is offered for any design that
-targets a Zynq-7000 / Zynq UltraScale+ device. The device is read from the
-project's `system_project.tcl` (carrier-less designs such as `jupiter_sdr`,
-`pluto`, `m2k`) or from the board table in
-`projects/scripts/adi_project_xilinx.tcl` (carrier designs). Versal, Kintex /
-Virtex, Intel and Lattice designs are not eligible; requesting it anyway only
-prints a warning.
+`BUILD_BOOT_BIN=true` (or the wizard's prompt) is offered for any design whose
+device has a boot ROM. The device is read from the project's
+`system_project.tcl` (carrier-less designs such as `jupiter_sdr`, `pluto`,
+`m2k`) or from the board table in `projects/scripts/adi_project_xilinx.tcl`
+(carrier designs), and selects the matching helper from
+[wiki-scripts](https://github.com/analogdevicesinc/wiki-scripts) — all three
+are fetched into `scripts/` by `cim init`:
+
+| Device | Helper | Inputs |
+|---|---|---|
+| Zynq-7000 (`xc7z*`) | `build_boot_bin.sh` | XSA, `BOOT_BIN_UBOOT` → FSBL + bit + u-boot |
+| Zynq UltraScale+ (`xczu*`) | `build_zynqmp_boot_bin.sh` | XSA, `BOOT_BIN_UBOOT`, `BOOT_BIN_ATF` → FSBL + PMUFW + bit + bl31 + u-boot |
+| Versal (`xcv*`) | `build_versal_boot_bin.sh` | XSA, `BOOT_BIN_UBOOT`, `BOOT_BIN_ATF` (+ DTB; see the script) |
+
+Kintex / Virtex / Artix, Intel and Lattice designs are not eligible;
+requesting BOOT.BIN for them prints a warning and skips it.
+
+* `BOOT_BIN_UBOOT=download` (default) fetches ADI's prebuilt `u-boot.elf` for
+  the carrier detected inside the XSA — the ZynqMP list covers `zcu102`,
+  `adrv2crr_*`, `jupiter_sdr`, `k26`; the Zynq-7000 list `zed`, `zc702`,
+  `zc706`, `coraz7s`, `ccbob_*`, `ccfmc_*`, `usrpe31x`. Other carriers need an
+  explicit `BOOT_BIN_UBOOT=/path/to/u-boot.elf`.
+* `BOOT_BIN_ATF=download` (default, ZynqMP/Versal) clones and builds
+  arm-trusted-firmware, which needs `aarch64-linux-gnu-gcc`
+  (`gcc-aarch64-linux-gnu`, included in `os-dependencies.yml`). Pass a
+  prebuilt `BOOT_BIN_ATF=/path/to/bl31.elf` or an ATF source directory to skip
+  that.
+* The helpers need `xsct`, `bootgen` and `vitis` on PATH — i.e. Vitis, not
+  just Vivado, installed alongside the selected version.
 
 ```bash
 make sdk-build HDL_PROJECT=jupiter_sdr BUILD_BOOT_BIN=true
+make sdk-build HDL_PROJECT=fmcomms2 HDL_BOARD=zcu102 BUILD_BOOT_BIN=true BOOT_BIN_ATF=~/bl31.elf
 ```
+
+Output lands in `hdl/projects/<...>/output_boot_bin/BOOT.BIN`.
 
 ## Guided wizard
 

@@ -3,6 +3,11 @@ common_deps: &common
   - git
   - make
   - x11-utils
+  # BOOT.BIN helpers: unzip reads the XSA, wget fetches ADI's prebuilt u-boot,
+  # the aarch64 cross-compiler builds arm-trusted-firmware for ZynqMP/Versal.
+  - unzip
+  - wget
+  - gcc-aarch64-linux-gnu
 
 linux-x86_64:
   ubuntu-22.04:

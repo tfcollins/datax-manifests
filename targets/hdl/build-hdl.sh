@@ -208,32 +208,68 @@ get_project_name() {
     fi
 }
 
-# True when the design targets a Zynq-7000 / Zynq UltraScale+ device, i.e. a
-# BOOT.BIN can be produced from its XSA. Carrier-less designs name the part in
-# their own system_project.tcl; carrier designs get it from the board table in
-# projects/scripts/adi_project_xilinx.tcl.
-is_zynq_design() {
+# Print the Xilinx device string a design targets, if it can be found.
+# Carrier-less designs name the part in their own system_project.tcl; carrier
+# designs get it from the board table in projects/scripts/adi_project_xilinx.tcl.
+get_device() {
     local proj="$1"
     local board="${2:-}"
-    local dir
+    local dir dev
     dir="$(get_project_dir "$proj" "$board")"
-    if grep -qsE 'xc7z|xczu' "${dir}/system_project.tcl"; then
-        return 0
-    fi
-    if [ -n "$board" ]; then
+    dev="$(grep -ohsE '"?(xc7z|xczu|xcv[cemp]|xck|xcku|xcvu|xc7[akv])[0-9a-z-]+' "${dir}/system_project.tcl" | head -1 | tr -d '"')"
+    if [ -z "$dev" ] && [ -n "$board" ]; then
         local table="${PROJECTS_DIR}/scripts/adi_project_xilinx.tcl"
-        if [ -f "$table" ] && awk -v b="_${board}\"" '
+        [ -f "$table" ] && dev="$(awk -v b="_${board}\"" '
             index($0, "regexp \"" b) { hit = NR }
-            hit && NR <= hit + 3 && /set device/ { if ($0 ~ /xc7z|xczu/) found = 1 }
-            END { exit found ? 0 : 1 }' "$table"; then
-            return 0
-        fi
-        # Fallback for releases whose scripts differ from the layout above
-        case "$board" in
-            zed|zc702|zc706|coraz7s|adrv2crr_*|ccbob_*|ccfmc_*|zcu102|k26|kv260) return 0 ;;
-        esac
+            hit && NR <= hit + 3 && /set device/ { gsub(/.*set device "?/, ""); gsub(/".*/, ""); print; exit }' "$table")"
     fi
-    return 1
+    [ -n "$dev" ] && echo "$dev"
+}
+
+# Boot architecture for bootgen / the BOOT.BIN helper: zynq, zynqmp or versal.
+# Returns 1 (and prints nothing) for designs that cannot boot from a BOOT.BIN.
+get_boot_arch() {
+    local proj="$1"
+    local board="${2:-}"
+    local dev
+    dev="$(get_device "$proj" "$board")"
+    case "$dev" in
+        xc7z*)            echo zynq ;;
+        xczu*)            echo zynqmp ;;
+        xcv[cemp]*)       echo versal ;;
+        "")
+            # Fallback by carrier name for releases whose scripts differ
+            case "$board" in
+                zed|zc702|zc706|coraz7s|adrv2crr_*|ccbob_*|ccfmc_*) echo zynq ;;
+                zcu102|k26|kv260)                                   echo zynqmp ;;
+                vck190|vmk180|vpk180|vck190_es1|vmk180_es1)         echo versal ;;
+                *) return 1 ;;
+            esac
+            ;;
+        *) return 1 ;;
+    esac
+}
+
+# Helper script from analogdevicesinc/wiki-scripts for a boot architecture
+get_boot_bin_script() {
+    case "$1" in
+        zynq)   echo "${WORKSPACE_ROOT}/scripts/build_boot_bin.sh" ;;
+        zynqmp) echo "${WORKSPACE_ROOT}/scripts/build_zynqmp_boot_bin.sh" ;;
+        versal) echo "${WORKSPACE_ROOT}/scripts/build_versal_boot_bin.sh" ;;
+    esac
+}
+
+# Command line for the BOOT.BIN helper. Zynq-7000 takes (xsa, u-boot); ZynqMP
+# and Versal additionally take the ATF/bl31 source ("download" builds
+# arm-trusted-firmware with aarch64-linux-gnu-gcc).
+get_boot_bin_cmd() {
+    local arch="$1" xsa="$2" uboot="$3" atf="$4"
+    local script
+    script="$(get_boot_bin_script "$arch")"
+    case "$arch" in
+        zynq)          printf 'bash "%s" "%s" "%s"' "$script" "$xsa" "$uboot" ;;
+        zynqmp|versal) printf 'bash "%s" "%s" "%s" "%s"' "$script" "$xsa" "$uboot" "$atf" ;;
+    esac
 }
 
 # Helper function to identify required EDA tool for a project/board combo
@@ -631,14 +667,15 @@ run_interactive_wizard() {
     local dir_name="${input_dirname:-build}"
 
     local build_boot_bin="false"
-    # Only Zynq / ZynqMP designs can produce a BOOT.BIN
-    if is_zynq_design "$selected_project" "$selected_board"; then
-        read -r -p "Generate BOOT.BIN binary? [y/N] > " input_boot
+    local boot_arch
+    # Only Zynq / ZynqMP / Versal designs can produce a BOOT.BIN
+    if boot_arch="$(get_boot_arch "$selected_project" "$selected_board")"; then
+        read -r -p "Generate BOOT.BIN binary (${boot_arch})? [y/N] > " input_boot
         if [[ "$input_boot" =~ ^[Yy] ]]; then
             build_boot_bin="true"
         fi
     else
-        echo "BOOT.BIN: not applicable (design does not target a Zynq / ZynqMP device)."
+        echo "BOOT.BIN: not applicable (design does not target a Zynq / ZynqMP / Versal device)."
     fi
 
     # Step 5: Summary & Execution Confirmation
@@ -650,7 +687,7 @@ run_interactive_wizard() {
     echo -e "  Required Tool:         ${BOLD}${CYAN}${required_tool}${RESET} (${tool_desc})"
     echo -e "  Parallel Jobs:         ${BOLD}${make_jobs}${RESET}"
     echo -e "  Output Folder:         ${BOLD}${dir_name}${RESET}"
-    echo -e "  Generate BOOT.BIN:     ${BOLD}${build_boot_bin}${RESET}"
+    echo -e "  Generate BOOT.BIN:     ${BOLD}${build_boot_bin}${RESET}${boot_arch:+ (${boot_arch})}"
     echo -e "--------------------------------------------------------------------------------"
     echo -e "Equivalent CIM / Make command:"
     echo -e "  ${CYAN}make HDL_RELEASE=${HDL_RELEASE} HDL_PROJECT=${selected_project}${selected_board:+ HDL_BOARD=${selected_board}} DIR_NAME=${dir_name} MAKE_JOBS=\"${make_jobs}\" BUILD_BOOT_BIN=${build_boot_bin} sdk-build${RESET}"
@@ -663,7 +700,7 @@ run_interactive_wizard() {
     fi
 
     # Run build
-    execute_build "$selected_project" "$selected_board" "$make_jobs" "$dir_name" "$build_boot_bin" "download" "false"
+    execute_build "$selected_project" "$selected_board" "$make_jobs" "$dir_name" "$build_boot_bin" "download" "false" "download"
 }
 
 # Execute the actual build
@@ -675,6 +712,7 @@ execute_build() {
     local boot_bin_enabled="$5"
     local boot_bin_uboot="${6:-download}"
     local dry_run="${7:-false}"
+    local boot_bin_atf="${8:-download}"
 
     if ! is_valid_combo "$proj" "$board"; then
         echo -e "${RED}[ERROR]${RESET} Invalid project/board combination: \x27${proj}/${board}\x27" >&2
@@ -700,8 +738,21 @@ execute_build() {
     local project_board_dir project_name
     project_board_dir="$(get_project_dir "$proj" "$board")"
     project_name="$(get_project_name "$proj" "$board")"
-    if [ "$boot_bin_enabled" = "true" ] && ! is_zynq_design "$proj" "$board"; then
-        echo -e "${YELLOW}[WARN]${RESET} BOOT.BIN requested but ${proj}${board:+/${board}} does not appear to target a Zynq / ZynqMP device; build_boot_bin.sh will likely fail."
+    local boot_arch="" boot_bin_cmd=""
+    if [ "$boot_bin_enabled" = "true" ]; then
+        if boot_arch="$(get_boot_arch "$proj" "$board")"; then
+            boot_bin_cmd="$(get_boot_bin_cmd "$boot_arch" "${dir_name}/${project_name}.sdk/system_top.xsa" "$boot_bin_uboot" "$boot_bin_atf")"
+            if [ ! -f "$(get_boot_bin_script "$boot_arch")" ]; then
+                echo -e "${RED}[ERROR]${RESET} $(get_boot_bin_script "$boot_arch") is missing; re-run 'cim init' (it is listed in sdk.yml copy_files)." >&2
+                exit 1
+            fi
+            if [ "$boot_arch" != "zynq" ] && [ "$boot_bin_atf" = "download" ] && ! command -v aarch64-linux-gnu-gcc >/dev/null 2>&1; then
+                echo -e "${YELLOW}[WARN]${RESET} BOOT_BIN_ATF=download builds arm-trusted-firmware and needs aarch64-linux-gnu-gcc (apt: gcc-aarch64-linux-gnu), or pass BOOT_BIN_ATF=/path/to/bl31.elf."
+            fi
+        else
+            echo -e "${YELLOW}[WARN]${RESET} BOOT.BIN requested but ${proj}${board:+/${board}} does not target a Zynq / ZynqMP / Versal device (device: $(get_device "$proj" "$board" || echo unknown)); skipping BOOT.BIN."
+            boot_bin_enabled="false"
+        fi
     fi
 
     echo -e "\n${BOLD}${GREEN}================================================================================${RESET}"
@@ -712,13 +763,16 @@ execute_build() {
     echo -e "  Tool Setup:        ${env_setup}"
     echo -e "  Make Jobs:         ${make_jobs}"
     echo -e "  Output Folder:     ${dir_name}"
+    if [ "$boot_bin_enabled" = "true" ]; then
+        echo -e "  BOOT.BIN:          ${boot_arch} (u-boot: ${boot_bin_uboot}${boot_arch:+, }$([ "$boot_arch" != zynq ] && echo "atf: ${boot_bin_atf}"))"
+    fi
 
     if [ "$dry_run" = "true" ]; then
         echo -e "\n${YELLOW}[DRY-RUN] Commands that would be executed:${RESET}"
         echo "1) ${env_setup}"
         echo "2) make ${make_jobs} -C \"${project_board_dir}\" DIR_NAME=\"${dir_name}\""
         if [ "$boot_bin_enabled" = "true" ]; then
-            echo "3) cd \"${project_board_dir}\" && bash \"${WORKSPACE_ROOT}/scripts/build_boot_bin.sh\" \"${dir_name}/${project_name}.sdk/system_top.xsa\" \"${boot_bin_uboot}\""
+            echo "3) cd \"${project_board_dir}\" && ${boot_bin_cmd}   # BOOT.BIN (${boot_arch})"
         fi
         return 0
     fi
@@ -732,11 +786,9 @@ execute_build() {
         ${env_setup} 2>/dev/null || true
         MAKEOVERRIDES= make --no-print-directory ${make_jobs} -C \"${project_board_dir}\" DIR_NAME=\"${dir_name}\"
         if [ \"${boot_bin_enabled}\" = \"true\" ]; then
-            if [ -f \"${WORKSPACE_ROOT}/scripts/build_boot_bin.sh\" ]; then
-                echo -e \x27\n${BOLD}${CYAN}Generating BOOT.BIN...${RESET}\x27
-                cd \"${project_board_dir}\"
-                bash \"${WORKSPACE_ROOT}/scripts/build_boot_bin.sh\" \"${dir_name}/${project_name}.sdk/system_top.xsa\" \"${boot_bin_uboot}\"
-            fi
+            echo -e \x27\n${BOLD}${CYAN}Generating BOOT.BIN (${boot_arch})...${RESET}\x27
+            cd \"${project_board_dir}\"
+            ${boot_bin_cmd}
         fi
     "
 
@@ -793,9 +845,13 @@ Direct Build Options:
                              Ignored for projects without carriers (jupiter_sdr, pluto, ...)
   -j, --jobs <N>             Parallel make jobs (e.g. -j8, default: -j\$(nproc))
   -d, --dir-name <name>      Build output directory name (default: build)
-  --boot-bin [true|false]    Generate BOOT.BIN binary for Zynq/ZynqMP designs
+  --boot-bin [true|false]    Generate BOOT.BIN for Zynq-7000 / ZynqMP / Versal designs
+                             (helper picked from the target device: build_boot_bin.sh,
+                             build_zynqmp_boot_bin.sh or build_versal_boot_bin.sh)
+  --boot-bin-uboot <src>     u-boot.elf path, or "download" (ADI prebuilt, default)
+  --boot-bin-atf <src>       ZynqMP/Versal only: bl31.elf path, ATF source dir, or
+                             "download" (clone+build; needs aarch64-linux-gnu-gcc, default)
   --clean                    Run the project/board "make clean" instead of building
-  --boot-bin-uboot <mode>    U-Boot binary source for BOOT.BIN (default: download)
   --dry-run                  Display resolved tool environment and make commands without executing
 
 Inspection & Information Options:
@@ -843,6 +899,7 @@ main() {
     local opt_dirname="build"
     local opt_boot_bin="false"
     local opt_uboot="download"
+    local opt_atf="download"
     local opt_dry_run="false"
     local opt_interactive="false"
     local opt_clean="false"
@@ -905,6 +962,10 @@ main() {
                 ;;
             --boot-bin-uboot)
                 opt_uboot="$2"
+                shift 2
+                ;;
+            --boot-bin-atf)
+                opt_atf="$2"
                 shift 2
                 ;;
             --dry-run)
@@ -990,7 +1051,7 @@ main() {
         if [ "$opt_clean" = "true" ]; then
             execute_clean "$opt_proj" "$opt_board" "$opt_dirname"
         else
-            execute_build "$opt_proj" "$opt_board" "$opt_jobs" "$opt_dirname" "$opt_boot_bin" "$opt_uboot" "$opt_dry_run"
+            execute_build "$opt_proj" "$opt_board" "$opt_jobs" "$opt_dirname" "$opt_boot_bin" "$opt_uboot" "$opt_dry_run" "$opt_atf"
         fi
     elif [ -n "$opt_proj" ] && [ -z "$opt_board" ]; then
         cmd_list_boards_for_project "$opt_proj" || exit 1
