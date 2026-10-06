@@ -86,6 +86,17 @@ GitHub-relative links to the corresponding pages. Theme and tooling follow
 [pyadi-iio](https://github.com/analogdevicesinc/pyadi-iio) (`adi-doctools`
 cosmic theme, `myst-parser`).
 
+## AI agent skills
+
+`.claude/skills/` carries two Claude Code project skills, auto-loaded for
+sessions in this repository (Codex/Gemini users can point their runtime at
+the same files):
+
+| Skill | Use when |
+|---|---|
+| `building-cim-targets` | building, initializing or debugging a workspace for any target — fast path per target plus the pitfalls (absolute `--source`, `--install`, LFS, Vivado per release, carrier-less projects, where BOOT.BIN lands, what Error 127 means) |
+| `adding-cim-target` | creating or extending a target — file shape, `extends:`/`overlay:` rules, what a change must ship with (tests, README → docs page, CI wiring), mistakes already made |
+
 ## Testing
 
 ```bash
