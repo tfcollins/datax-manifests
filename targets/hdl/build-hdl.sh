@@ -704,6 +704,14 @@ run_interactive_wizard() {
             else
                 echo "  ATF:     not needed (Zynq-7000)"
             fi
+            local deps_out
+            if deps_out="$(bash "${WORKSPACE_ROOT}/scripts/build-uboot.sh" --board "${UBOOT_BOARD:-auto}" --release "$HDL_RELEASE" \
+                    --hdl-project "$selected_project" --hdl-board "$selected_board" --check-deps 2>&1)"; then
+                echo "  Host deps: OK"
+            else
+                echo -e "  ${YELLOW}Host deps: $(echo "$deps_out" | sed -n 's/.*Missing host build dependencies: //p')${RESET}"
+                echo "             run 'cim install os-deps --yes' in this workspace first, or choose the download below"
+            fi
             read -r -p "Build u-boot and ATF from source? [Y/n] (n = use ADI's prebuilt downloads) > " input_src
             if [[ ! "$input_src" =~ ^[Nn] ]]; then boot_source="true"; fi
         else

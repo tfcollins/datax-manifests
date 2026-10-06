@@ -2,6 +2,7 @@ uboot_deps: &uboot
   - build-essential
   - git
   - make
+  - pkg-config
   - bc
   - bison
   - flex

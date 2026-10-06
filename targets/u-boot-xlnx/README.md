@@ -25,6 +25,13 @@ make sdk-build UBOOT_BOARD=jupiter_sdr
 ls -l u-boot-xlnx/u-boot.elf
 ```
 
+`make uboot-check-deps` (or `scripts/build-uboot.sh --check-deps`) verifies
+the host packages before anything is compiled; the build runs the same check
+and stops with the `apt-get` / `cim install os-deps --yes` line if something
+such as `libgnutls28-dev` or `swig` is missing. Add `--install` to `cim init`
+(or run `cim install os-deps --yes` in the workspace) to install them from
+`os-dependencies.yml`.
+
 ## Presets
 
 `UBOOT_BOARD` selects the ref, defconfig, device tree and cross compiler.

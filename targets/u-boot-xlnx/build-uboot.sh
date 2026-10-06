@@ -127,6 +127,37 @@ ensure_ref() {
     fi
 }
 
+# Host build dependencies u-boot-xlnx needs beyond the cross compiler. Checked
+# before compiling so a missing -dev package fails here with the fix instead
+# of twenty seconds into HOSTCC (e.g. "gnutls/gnutls.h: No such file").
+check_host_deps() {
+    local cross="$1"
+    local missing=()
+    local pkgs=()
+    command -v "${cross}gcc" >/dev/null 2>&1 || { missing+=("${cross}gcc"); case "$cross" in aarch64*) pkgs+=(gcc-aarch64-linux-gnu) ;; *) pkgs+=(gcc-arm-linux-gnueabihf) ;; esac; }
+    command -v swig  >/dev/null 2>&1 || { missing+=(swig);  pkgs+=(swig); }
+    command -v dtc   >/dev/null 2>&1 || { missing+=(dtc);   pkgs+=(device-tree-compiler); }
+    command -v bison >/dev/null 2>&1 || { missing+=(bison); pkgs+=(bison); }
+    command -v flex  >/dev/null 2>&1 || { missing+=(flex);  pkgs+=(flex); }
+    command -v bc    >/dev/null 2>&1 || { missing+=(bc);    pkgs+=(bc); }
+    python3 -c 'import setuptools' 2>/dev/null || { missing+=(python3-setuptools); pkgs+=(python3-setuptools); }
+    if command -v pkg-config >/dev/null 2>&1; then
+        pkg-config --exists gnutls  || { missing+=(gnutls/gnutls.h); pkgs+=(libgnutls28-dev); }
+        pkg-config --exists openssl || { missing+=(openssl/ssl.h);   pkgs+=(libssl-dev); }
+        pkg-config --exists uuid    || { missing+=(uuid/uuid.h);     pkgs+=(uuid-dev); }
+        pkg-config --exists python3 || { missing+=(Python.h);        pkgs+=(python3-dev); }
+    else
+        missing+=(pkg-config); pkgs+=(pkg-config)
+    fi
+    if [ ${#missing[@]} -gt 0 ]; then
+        echo -e "${RED}[ERROR]${RESET} Missing host build dependencies: ${missing[*]}" >&2
+        echo "Install the target's host packages with:" >&2
+        echo "    cim install os-deps --yes          (reads os-dependencies.yml in this workspace)" >&2
+        echo "or: sudo apt-get install ${pkgs[*]}" >&2
+        exit 1
+    fi
+}
+
 show_help() {
     cat <<EOF
 Build u-boot.elf from analogdevicesinc/u-boot-xlnx
@@ -149,6 +180,7 @@ Options:
   --hdl-project/--hdl-board  Used with --board auto to pick the preset
   --list                     Show the preset table and exit
   --dry-run                  Print the resolved ref/defconfig/commands and exit
+  --check-deps               Only verify the host build dependencies for the selected board
   --clean                    make distclean in u-boot-xlnx/
   -h, --help
 
@@ -170,7 +202,7 @@ cmd_list() {
 
 main() {
     local board="" release="${UBOOT_RELEASE:-hdl_2026_r1}" ref="" defconfig="" dt="" cross="" jobs=""
-    local hdl_project="" hdl_board="" dry_run="false" clean="false"
+    local hdl_project="" hdl_board="" dry_run="false" clean="false" check_deps="false"
     [ $# -eq 0 ] && { show_help; return 0; }
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -185,6 +217,7 @@ main() {
             --hdl-board) hdl_board="$2"; shift 2 ;;
             --list) cmd_list; return 0 ;;
             --dry-run) dry_run="true"; shift ;;
+            --check-deps) check_deps="true"; shift ;;
             --clean) clean="true"; shift ;;
             -h|--help) show_help; return 0 ;;
             *) echo -e "${RED}[ERROR]${RESET} Unknown option: $1" >&2; exit 1 ;;
@@ -241,9 +274,20 @@ main() {
     echo "  CROSS_COMPILE: ${cross}"
     echo "  Output:        ${UBOOT_DIR}/u-boot.elf"
 
+    if [ "$check_deps" = "true" ]; then
+        check_host_deps "$cross"
+        echo -e "${GREEN}Host build dependencies OK for ${cross}${RESET}"
+        return 0
+    fi
+
     local dt_arg=""
     [ -n "$dt" ] && dt_arg="DEVICE_TREE=${dt}"
     if [ "$dry_run" = "true" ]; then
+        # A dirty checkout would stop the real run before anything else: say so now.
+        if [ -e "${UBOOT_DIR}/.git" ] && [ -n "$(git -C "$UBOOT_DIR" status --porcelain --untracked-files=no)" ] \
+            && ! { want="$(local_ref_commit "$ref")" && [ "$want" = "$(git -C "$UBOOT_DIR" rev-parse HEAD 2>/dev/null)" ]; }; then
+            echo -e "${YELLOW}[WARN]${RESET} u-boot-xlnx/ worktree is dirty; the build will refuse to switch to '${ref}'." >&2
+        fi
         echo -e "\n${YELLOW}[DRY-RUN] Commands that would be executed:${RESET}"
         echo "1) git -C \"${UBOOT_DIR}\" checkout ${ref}"
         echo "2) make -C \"${UBOOT_DIR}\" ${defconfig}"
@@ -252,10 +296,7 @@ main() {
         return 0
     fi
 
-    if ! command -v "${cross}gcc" >/dev/null 2>&1; then
-        echo -e "${RED}[ERROR]${RESET} ${cross}gcc not found. Install gcc-arm-linux-gnueabihf / gcc-aarch64-linux-gnu (see os-dependencies.yml)." >&2
-        exit 1
-    fi
+    check_host_deps "$cross"
     ensure_ref "$ref"
     set -e
     make -C "$UBOOT_DIR" distclean >/dev/null 2>&1 || true

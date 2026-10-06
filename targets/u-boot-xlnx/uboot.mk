@@ -14,13 +14,16 @@ UBOOT_SCRIPT_ARGS = --board "$(UBOOT_BOARD)" --release "$(UBOOT_RELEASE)" --jobs
 	$(if $(UBOOT_HDL_PROJECT),--hdl-project "$(UBOOT_HDL_PROJECT)") \
 	$(if $(UBOOT_HDL_BOARD),--hdl-board "$(UBOOT_HDL_BOARD)")
 
-.PHONY: uboot-build uboot-dry-run uboot-list uboot-clean
+.PHONY: uboot-build uboot-dry-run uboot-check-deps uboot-list uboot-clean
 
 uboot-build:
 	@bash scripts/build-uboot.sh $(UBOOT_SCRIPT_ARGS)
 
 uboot-dry-run:
 	@bash scripts/build-uboot.sh $(UBOOT_SCRIPT_ARGS) --dry-run
+
+uboot-check-deps:
+	@bash scripts/build-uboot.sh $(UBOOT_SCRIPT_ARGS) --check-deps
 
 uboot-list:
 	@bash scripts/build-uboot.sh --list
