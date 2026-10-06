@@ -183,8 +183,10 @@ class HdlCimWorkspaceTests(unittest.TestCase):
             self.skipTest("install cim or set CIM_BIN")
         with tempfile.TemporaryDirectory() as directory:
             workspace = Path(directory) / "workspace"
-            subprocess.run([cim, "init", "--target", "hdl", "--source", str(ROOT),
-                            "--workspace", str(workspace)], check=True, capture_output=True)
+            init = subprocess.run([cim, "init", "--target", "hdl", "--source", str(ROOT),
+                                   "--workspace", str(workspace), "--yes"],
+                                  text=True, capture_output=True)
+            self.assertEqual(init.returncode, 0, init.stdout + init.stderr)
             subprocess.run([cim, "makefile"], cwd=workspace, check=True, capture_output=True)
             makefile = (workspace / "Makefile").read_text()
             self.assertIn("include hdl.mk", makefile)
