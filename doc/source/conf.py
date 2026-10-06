@@ -52,4 +52,5 @@ interref_repos = ["doctools"]
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = "cosmic"
-html_static_path = ["_static"] if os.path.isdir("_static") else []
+html_static_path = ["_static"]
+html_css_files = ["css/diagrams.css"]
