@@ -40,7 +40,10 @@ jobs:
       - name: shellcheck
         run: |
           sudo apt-get install -y -qq shellcheck >/dev/null
-          shellcheck -S warning targets/hdl/build-hdl.sh
+          shellcheck -S warning targets/hdl/build-hdl.sh .github/scripts/*.sh
+
+      - name: actionlint
+        uses: raven-actions/actionlint@v2
 
       - name: Python compiles
         run: python3 -m py_compile targets/adi-linux/*.py tests/*.py
@@ -90,8 +93,6 @@ jobs:
     concurrency:
       group: hdl-dev-2-datax-manifests
       cancel-in-progress: false
-    env:
-      TMPDIR: ${{ runner.temp }}
     steps:
       - uses: actions/checkout@v4
 
@@ -102,6 +103,8 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test_hdl_*.py' -v
         env:
           CIM_NETWORK: "1"
+          # keep the real hdl clone off the near-full / on hdl-dev-2
+          TMPDIR: ${{ runner.temp }}
 
       - name: Smoke-init hdl
         run: |

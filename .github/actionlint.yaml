@@ -1,0 +1,4 @@
+self-hosted-runner:
+  labels:
+    - hdl-dev-2
+    - vivado
