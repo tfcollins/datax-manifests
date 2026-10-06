@@ -343,6 +343,94 @@ class HdlGuideTests(unittest.TestCase):
         self.assertIn("CLEANED out", result.stdout)
 
 
+class HdlBootWizardTests(HdlGuideTests):
+    """The same wizard in an hdl-boot workspace: plans u-boot/ATF and drives make."""
+
+    def setUp(self):
+        super().setUp()
+        for name, target in (("build-uboot.sh", "u-boot-xlnx"), ("build-atf.sh", "arm-trusted-firmware")):
+            shutil.copy(ROOT / "targets" / target / name, self.workspace / "scripts" / name)
+        for repo in ("u-boot-xlnx", "arm-trusted-firmware"):
+            d = self.workspace / repo
+            d.mkdir()
+            git(d, "init", "-q")
+        shutil.copy(ROOT / "targets/hdl-boot/boot.mk", self.workspace / "boot.mk")
+        # Stand-in for cim's generated Makefile: record what sdk-build was asked to do
+        (self.workspace / "Makefile").write_text(
+            "sdk-build:\n\t@echo MAKE sdk-build HDL_RELEASE=$(HDL_RELEASE) HDL_PROJECT=$(HDL_PROJECT) "
+            "HDL_BOARD=$(HDL_BOARD) BUILD_BOOT_BIN=$(BUILD_BOOT_BIN) BOOT_BIN_UBOOT=$(BOOT_BIN_UBOOT) "
+            "BOOT_BIN_ATF=$(BOOT_BIN_ATF)\n")
+
+    # Inherited wizard tests still pass with the boot helpers present, except that
+    # the BOOT.BIN prompt now defaults to yes: re-state the one that answered it.
+    def test_wizard_offers_boot_bin_for_zynq_designs_only(self):
+        result = self.wizard(["", "jupiter_sdr", "", "", "", "", "n"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Generate BOOT.BIN:     true (zynqmp)", result.stdout)
+        result = self.wizard(["", "fmcomms2", "kcu105", "", "", "n"])
+        self.assertIn("not applicable", result.stdout)
+        self.assertNotIn("Boot components", result.stdout)
+
+    def test_wizard_plans_boot_components_from_the_design(self):
+        # jupiter: ZynqMP, u-boot preset by project, ATF tag from the release; default = from source
+        result = self.wizard(["", "jupiter_sdr", "", "", "", "", "n"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("u-boot:  jupiter-sdr / xilinx_zynqmp_virt_defconfig / zynqmp-jupiter-sdr", result.stdout)
+        self.assertIn("ATF:     zynqmp @ xilinx-v2025.1", result.stdout)
+        self.assertIn("Boot components:       from source", result.stdout)
+        self.assertNotIn("BOOT_BIN_UBOOT=download", result.stdout)
+        # zed on 2023_r2: Zynq-7000 -> no ATF, u-boot tag follows the release; choose download
+        result = self.wizard(["hdl_2023_r2", "fmcomms2", "zed", "", "", "", "n", "n"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("u-boot:  xlnx_rebase_v2023.01_2023.2 / xilinx_zynq_virt_defconfig / zynq-zed", result.stdout)
+        self.assertIn("ATF:     not needed (Zynq-7000)", result.stdout)
+        self.assertIn("Boot components:       ADI prebuilt download", result.stdout)
+        self.assertIn("BUILD_BOOT_BIN=true BOOT_BIN_UBOOT=download BOOT_BIN_ATF=download sdk-build", result.stdout)
+
+    def test_wizard_warns_when_no_uboot_preset(self):
+        # Give the fake repo a ZynqMP carrier with no u-boot preset
+        board_dir = self.workspace / "hdl/projects/fmcomms2/zcu106"
+        board_dir.mkdir()
+        (board_dir / "Makefile").write_text("PROJECT_NAME := fmcomms2_zcu106\ninclude ../../scripts/project-xilinx.mk\n")
+        with (self.workspace / "hdl/projects/scripts/adi_project_xilinx.tcl").open("a") as f:
+            f.write('if [regexp "_zcu106" $project_name] {\n  set device "xczu7ev-ffvc1156-2-e"\n}\n')
+        git(self.workspace / "hdl", "add", "-A")
+        git(self.workspace / "hdl", "commit", "-qm", "zcu106")
+        result = self.wizard(["", "fmcomms2", "zcu106", "", "", "", "n"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("No u-boot preset for fmcomms2/zcu106", result.stdout)
+        self.assertIn("UBOOT_REF", result.stdout)
+        self.assertNotIn("Build u-boot and ATF from source?", result.stdout)
+
+    def test_wizard_executes_through_make_so_components_build_first(self):
+        result = self.wizard(["", "jupiter_sdr", "", "", "", "", "y"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("MAKE sdk-build HDL_RELEASE=hdl_2026_r1 HDL_PROJECT=jupiter_sdr HDL_BOARD= BUILD_BOOT_BIN=true "
+                      "BOOT_BIN_UBOOT= BOOT_BIN_ATF=", result.stdout)
+        result = self.wizard(["", "fmcomms2", "zcu102", "", "", "", "n", "y"])
+        self.assertIn("HDL_PROJECT=fmcomms2 HDL_BOARD=zcu102 BUILD_BOOT_BIN=true "
+                      "BOOT_BIN_UBOOT=download BOOT_BIN_ATF=download", result.stdout)
+
+    def test_boot_mk_skips_components_when_not_needed(self):
+        (self.workspace / "Makefile").write_text(
+            "HDL_RELEASE ?= hdl_2026_r1\nHDL_PROJECT ?= fmcomms2\nHDL_BOARD ?= zcu102\nBUILD_BOOT_BIN ?= true\n"
+            "BOOT_BIN_UBOOT ?= $(CURDIR)/u-boot-xlnx/u-boot.elf\nBOOT_BIN_ATF ?= $(CURDIR)/arm-trusted-firmware/bl31.elf\n"
+            "UBOOT_BOARD ?= auto\nATF_PLAT ?= auto\nATF_CONSOLE ?= cadence0\ninclude boot.mk\n")
+        def mk(*args):
+            return subprocess.run(["make", *args], cwd=self.workspace, text=True, capture_output=True, env=self.env)
+        r = mk("boot-uboot", "BUILD_BOOT_BIN=false")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("u-boot: skipped", r.stdout)
+        r = mk("boot-atf", "BOOT_BIN_ATF=download")
+        self.assertIn("ATF: skipped", r.stdout)
+        r = mk("boot-atf", "HDL_PROJECT=fmcomms2", "HDL_BOARD=zed", "HDL_RELEASE=hdl_2023_r2")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("ATF: not needed for a Zynq-7000 design", r.stdout)
+        r = mk("boot-atf", "HDL_PROJECT=fmcomms2", "HDL_BOARD=kcu105")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("set ATF_PLAT", r.stderr)
+
+
 @unittest.skipUnless(os.environ.get("CIM_NETWORK"), "set CIM_NETWORK=1 to clone the real hdl repo")
 class HdlCimWorkspaceTests(unittest.TestCase):
     def test_cim_init_and_generated_makefile(self):

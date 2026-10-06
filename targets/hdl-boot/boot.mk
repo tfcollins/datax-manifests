@@ -8,15 +8,21 @@
 
 .PHONY: boot-uboot boot-atf boot-dry-run boot-clean
 
+# Nothing to build when no BOOT.BIN is requested or the prebuilt download is
+# selected (make sdk-build BUILD_BOOT_BIN=false / BOOT_BIN_UBOOT=download).
 boot-uboot:
-	@bash scripts/build-uboot.sh --board "$(UBOOT_BOARD)" --release "$(HDL_RELEASE)" --jobs "$$(nproc)" \
+	@if [ "$(BUILD_BOOT_BIN)" != true ] || [ "$(BOOT_BIN_UBOOT)" = download ]; then \
+	  echo "u-boot: skipped (BUILD_BOOT_BIN=$(BUILD_BOOT_BIN), BOOT_BIN_UBOOT=$(BOOT_BIN_UBOOT))"; exit 0; fi; \
+	bash scripts/build-uboot.sh --board "$(UBOOT_BOARD)" --release "$(HDL_RELEASE)" --jobs "$$(nproc)" \
 		--hdl-project "$(HDL_PROJECT)" --hdl-board "$(HDL_BOARD)" \
 		$(if $(UBOOT_REF),--ref "$(UBOOT_REF)") $(if $(UBOOT_DEFCONFIG),--defconfig "$(UBOOT_DEFCONFIG)") \
 		$(if $(UBOOT_DEVICE_TREE),--device-tree "$(UBOOT_DEVICE_TREE)")
 
 # Zynq-7000 designs have no BL31: resolve the platform first and skip if none.
 boot-atf:
-	@plat="$(ATF_PLAT)"; if [ "$$plat" = auto ]; then plat="$$(bash scripts/build-hdl.sh --release "$(HDL_RELEASE)" --project "$(HDL_PROJECT)" --board "$(HDL_BOARD)" --boot-arch)"; fi; \
+	@if [ "$(BUILD_BOOT_BIN)" != true ] || [ "$(BOOT_BIN_ATF)" = download ]; then \
+	  echo "ATF: skipped (BUILD_BOOT_BIN=$(BUILD_BOOT_BIN), BOOT_BIN_ATF=$(BOOT_BIN_ATF))"; exit 0; fi; \
+	plat="$(ATF_PLAT)"; if [ "$$plat" = auto ]; then plat="$$(bash scripts/build-hdl.sh --release "$(HDL_RELEASE)" --project "$(HDL_PROJECT)" --board "$(HDL_BOARD)" --boot-arch)"; fi; \
 	case "$$plat" in \
 	  zynqmp|versal) bash scripts/build-atf.sh --plat "$$plat" --release "$(HDL_RELEASE)" --console "$(ATF_CONSOLE)" --jobs "$$(nproc)" $(if $(ATF_REF),--ref "$(ATF_REF)") ;; \
 	  zynq) echo "ATF: not needed for a Zynq-7000 design ($(HDL_PROJECT)/$(HDL_BOARD))" ;; \

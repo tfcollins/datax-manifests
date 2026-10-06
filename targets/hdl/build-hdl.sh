@@ -175,6 +175,14 @@ ensure_release() {
 
 PROJECTS_DIR="${HDL_DIR}/projects"
 
+# An hdl-boot workspace carries the u-boot / ATF source-build helpers next to
+# this script; the wizard then plans and drives those builds as well.
+BOOT_SOURCE_AVAILABLE="false"
+if [ -f "${WORKSPACE_ROOT}/scripts/build-uboot.sh" ] && [ -f "${WORKSPACE_ROOT}/scripts/build-atf.sh" ] \
+    && [ -d "${WORKSPACE_ROOT}/u-boot-xlnx" ]; then
+    BOOT_SOURCE_AVAILABLE="true"
+fi
+
 # Some projects (SOM-style boards such as jupiter_sdr, pluto, m2k) have no
 # carrier subdirectories: the project directory itself carries the vendor
 # Makefile and is built directly. The board argument is ignored for those.
@@ -670,12 +678,38 @@ run_interactive_wizard() {
     local boot_arch
     # Only Zynq / ZynqMP / Versal designs can produce a BOOT.BIN
     if boot_arch="$(get_boot_arch "$selected_project" "$selected_board")"; then
-        read -r -p "Generate BOOT.BIN binary (${boot_arch})? [y/N] > " input_boot
-        if [[ "$input_boot" =~ ^[Yy] ]]; then
-            build_boot_bin="true"
+        if [ "$BOOT_SOURCE_AVAILABLE" = "true" ]; then
+            read -r -p "Generate BOOT.BIN binary (${boot_arch})? [Y/n] > " input_boot
+            if [[ ! "$input_boot" =~ ^[Nn] ]]; then build_boot_bin="true"; fi
+        else
+            read -r -p "Generate BOOT.BIN binary (${boot_arch})? [y/N] > " input_boot
+            if [[ "$input_boot" =~ ^[Yy] ]]; then build_boot_bin="true"; fi
         fi
     else
         echo "BOOT.BIN: not applicable (design does not target a Zynq / ZynqMP / Versal device)."
+    fi
+
+    # hdl-boot workspaces: plan the u-boot / ATF source builds for this design
+    local boot_source="false" uboot_plan="" atf_plan=""
+    if [ "$build_boot_bin" = "true" ] && [ "$BOOT_SOURCE_AVAILABLE" = "true" ]; then
+        echo -e "\n${BOLD}Boot components${RESET} (this workspace can build u-boot and ATF from source):"
+        local uboot_out
+        if uboot_out="$(bash "${WORKSPACE_ROOT}/scripts/build-uboot.sh" --board "${UBOOT_BOARD:-auto}" --release "$HDL_RELEASE" \
+                --hdl-project "$selected_project" --hdl-board "$selected_board" --dry-run 2>&1)"; then
+            uboot_plan="$(echo "$uboot_out" | sed -n 's/^  Ref: *//p;s/^  Defconfig: *//p;s/^  DEVICE_TREE: *//p' | paste -sd'|' | sed 's#|# / #g')"
+            echo -e "  u-boot:  ${CYAN}${uboot_plan}${RESET}"
+            if [ "$boot_arch" != "zynq" ]; then
+                atf_plan="$(bash "${WORKSPACE_ROOT}/scripts/build-atf.sh" --plat "$boot_arch" --release "$HDL_RELEASE" --dry-run 2>/dev/null | sed -n 's/^  Ref: *//p')"
+                echo -e "  ATF:     ${CYAN}${boot_arch} @ ${atf_plan}${RESET}"
+            else
+                echo "  ATF:     not needed (Zynq-7000)"
+            fi
+            read -r -p "Build u-boot and ATF from source? [Y/n] (n = use ADI's prebuilt downloads) > " input_src
+            if [[ ! "$input_src" =~ ^[Nn] ]]; then boot_source="true"; fi
+        else
+            echo -e "  ${YELLOW}No u-boot preset for ${selected_project}${selected_board:+/${selected_board}}; BOOT.BIN will use ADI's prebuilt download.${RESET}"
+            echo "  (set UBOOT_REF / UBOOT_DEFCONFIG / UBOOT_DEVICE_TREE to build it from source)"
+        fi
     fi
 
     # Step 5: Summary & Execution Confirmation
@@ -688,9 +722,19 @@ run_interactive_wizard() {
     echo -e "  Parallel Jobs:         ${BOLD}${make_jobs}${RESET}"
     echo -e "  Output Folder:         ${BOLD}${dir_name}${RESET}"
     echo -e "  Generate BOOT.BIN:     ${BOLD}${build_boot_bin}${RESET}${boot_arch:+ (${boot_arch})}"
+    local boot_vars=""
+    if [ "$build_boot_bin" = "true" ] && [ "$BOOT_SOURCE_AVAILABLE" = "true" ]; then
+        if [ "$boot_source" = "true" ]; then
+            echo -e "  Boot components:       ${BOLD}from source${RESET} (u-boot: ${uboot_plan}${atf_plan:+; ATF: ${atf_plan}})"
+        else
+            echo -e "  Boot components:       ${BOLD}ADI prebuilt download${RESET}"
+            boot_vars=" BOOT_BIN_UBOOT=download BOOT_BIN_ATF=download"
+        fi
+    fi
+    local make_cmd="make HDL_RELEASE=${HDL_RELEASE} HDL_PROJECT=${selected_project}${selected_board:+ HDL_BOARD=${selected_board}} DIR_NAME=${dir_name} MAKE_JOBS=\"${make_jobs}\" BUILD_BOOT_BIN=${build_boot_bin}${boot_vars} sdk-build"
     echo -e "--------------------------------------------------------------------------------"
     echo -e "Equivalent CIM / Make command:"
-    echo -e "  ${CYAN}make HDL_RELEASE=${HDL_RELEASE} HDL_PROJECT=${selected_project}${selected_board:+ HDL_BOARD=${selected_board}} DIR_NAME=${dir_name} MAKE_JOBS=\"${make_jobs}\" BUILD_BOOT_BIN=${build_boot_bin} sdk-build${RESET}"
+    echo -e "  ${CYAN}${make_cmd}${RESET}"
     echo -e "--------------------------------------------------------------------------------"
 
     read -r -p "Start the build now? [Y/n] > " confirm
@@ -699,7 +743,15 @@ run_interactive_wizard() {
         return 0
     fi
 
-    # Run build
+    # Run build. In an hdl-boot workspace go through make so the u-boot /
+    # ATF targets sdk-build depends on run first (or are skipped on download).
+    if [ "$BOOT_SOURCE_AVAILABLE" = "true" ] && [ -f "${WORKSPACE_ROOT}/Makefile" ]; then
+        local -a mk=(make -C "$WORKSPACE_ROOT" sdk-build "HDL_RELEASE=${HDL_RELEASE}" "VIVADO=${VIVADO_OPT}"
+                     "HDL_PROJECT=${selected_project}" "HDL_BOARD=${selected_board}" "DIR_NAME=${dir_name}"
+                     "MAKE_JOBS=${make_jobs}" "BUILD_BOOT_BIN=${build_boot_bin}")
+        if [ -n "$boot_vars" ]; then mk+=("BOOT_BIN_UBOOT=download" "BOOT_BIN_ATF=download"); fi
+        exec "${mk[@]}"
+    fi
     execute_build "$selected_project" "$selected_board" "$make_jobs" "$dir_name" "$build_boot_bin" "download" "false" "download"
 }
 

@@ -36,6 +36,36 @@ make sdk-build    HDL_PROJECT=jupiter_sdr        # u-boot + bl31 + Vivado + BOOT
 make sdk-build    HDL_PROJECT=fmcomms2 HDL_BOARD=zed HDL_RELEASE=hdl_2023_r2
 ```
 
+## Guided wizard
+
+`make guide` is the same wizard as the `hdl` target, made boot-aware by the
+presence of the u-boot / ATF helpers in the workspace:
+
+```
+[Step 4/5] Configure Build Options
+Generate BOOT.BIN binary (zynqmp)? [Y/n] >
+Boot components (this workspace can build u-boot and ATF from source):
+  u-boot:  jupiter-sdr / xilinx_zynqmp_virt_defconfig / zynqmp-jupiter-sdr
+  ATF:     zynqmp @ xilinx-v2025.1
+Build u-boot and ATF from source? [Y/n] (n = use ADI's prebuilt downloads) >
+
+[Step 5/5] Build Configuration Summary
+  Generate BOOT.BIN:     true (zynqmp)
+  Boot components:       from source (u-boot: …; ATF: xilinx-v2025.1)
+Equivalent CIM / Make command:
+  make HDL_RELEASE=hdl_2026_r1 HDL_PROJECT=jupiter_sdr DIR_NAME=build MAKE_JOBS="-j8" BUILD_BOOT_BIN=true sdk-build
+```
+
+The u-boot preset, ref and device tree and the ATF platform/tag are derived
+from the release, project and board chosen in the earlier steps — nothing
+extra to answer. Answering `n` to "from source" appends
+`BOOT_BIN_UBOOT=download BOOT_BIN_ATF=download`; a design with no u-boot
+preset falls back to the download with a hint to set `UBOOT_REF` /
+`UBOOT_DEFCONFIG` / `UBOOT_DEVICE_TREE`. Confirming runs `make sdk-build`
+with those variables so u-boot and ATF are built (or skipped) before the HDL.
+`BUILD_BOOT_BIN=false` or `BOOT_BIN_*=download` skip the source builds
+entirely.
+
 ## How it composes
 
 cim's `extends:` merges the `hdl` manifest with this one in a single
