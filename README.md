@@ -67,8 +67,20 @@ python3 -m unittest discover -s tests -v
 
 Tests that need a `cim` binary look at `CIM_BIN` or `PATH` and skip
 otherwise; set `CIM_NETWORK=1` to also run the cases that clone real
-repositories. CI installs upstream cim and runs everything, plus a
-`cim init` smoke test for each target.
+repositories.
+
+CI (`.github/workflows/ci.yml`) runs three jobs against the pinned upstream
+cim release:
+
+| Job | Runner | What |
+|---|---|---|
+| `lint` | GitHub-hosted | shellcheck, `py_compile`, YAML parse, actionlint |
+| `test` | GitHub-hosted | adi-linux tests, `cim init` smoke of `adi-linux` |
+| `hdl` | self-hosted `hdl-dev-2` (labels `hdl-dev-2`, `vivado`) | hdl tests incl. real `cim init`, `make check-tools` for both releases against the installed Vivado 2023.2 / 2025.1, dry-run builds |
+
+A real Vivado build runs only on manual dispatch: **Actions → CI → Run
+workflow** with `build` checked (inputs `release` / `project` / `board`,
+default `hdl_2023_r2` / `fmcomms2` / `zed`).
 
 ## License
 
