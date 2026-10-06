@@ -107,6 +107,20 @@ make list-boards HDL_PROJECT=jupiter_sdr     # "has no carrier boards; built dir
 generation uses the Makefile's `PROJECT_NAME` for the `.sdk` path, so it works
 for both layouts.
 
+### BOOT.BIN
+
+`BUILD_BOOT_BIN=true` (or the wizard's prompt) is offered for any design that
+targets a Zynq-7000 / Zynq UltraScale+ device. The device is read from the
+project's `system_project.tcl` (carrier-less designs such as `jupiter_sdr`,
+`pluto`, `m2k`) or from the board table in
+`projects/scripts/adi_project_xilinx.tcl` (carrier designs). Versal, Kintex /
+Virtex, Intel and Lattice designs are not eligible; requesting it anyway only
+prints a warning.
+
+```bash
+make sdk-build HDL_PROJECT=jupiter_sdr BUILD_BOOT_BIN=true
+```
+
 ## Guided wizard
 
 `make guide` (or `./scripts/build-hdl.sh`) walks through:

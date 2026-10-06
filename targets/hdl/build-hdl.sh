@@ -208,6 +208,34 @@ get_project_name() {
     fi
 }
 
+# True when the design targets a Zynq-7000 / Zynq UltraScale+ device, i.e. a
+# BOOT.BIN can be produced from its XSA. Carrier-less designs name the part in
+# their own system_project.tcl; carrier designs get it from the board table in
+# projects/scripts/adi_project_xilinx.tcl.
+is_zynq_design() {
+    local proj="$1"
+    local board="${2:-}"
+    local dir
+    dir="$(get_project_dir "$proj" "$board")"
+    if grep -qsE 'xc7z|xczu' "${dir}/system_project.tcl"; then
+        return 0
+    fi
+    if [ -n "$board" ]; then
+        local table="${PROJECTS_DIR}/scripts/adi_project_xilinx.tcl"
+        if [ -f "$table" ] && awk -v b="_${board}\"" '
+            index($0, "regexp \"" b) { hit = NR }
+            hit && NR <= hit + 3 && /set device/ { if ($0 ~ /xc7z|xczu/) found = 1 }
+            END { exit found ? 0 : 1 }' "$table"; then
+            return 0
+        fi
+        # Fallback for releases whose scripts differ from the layout above
+        case "$board" in
+            zed|zc702|zc706|coraz7s|adrv2crr_*|ccbob_*|ccfmc_*|zcu102|k26|kv260) return 0 ;;
+        esac
+    fi
+    return 1
+}
+
 # Helper function to identify required EDA tool for a project/board combo
 get_required_tool() {
     local proj="$1"
@@ -603,15 +631,15 @@ run_interactive_wizard() {
     local dir_name="${input_dirname:-build}"
 
     local build_boot_bin="false"
-    # Check if board is Zynq or ZynqMP
-    case "$selected_board" in
-        zed|zc702|zc706|coraz7s|adrv2crr_*|ccbob_*|ccfmc_*|zcu102|k26|kv260)
-            read -r -p "Generate BOOT.BIN binary? [y/N] > " input_boot
-            if [[ "$input_boot" =~ ^[Yy] ]]; then
-                build_boot_bin="true"
-            fi
-            ;;
-    esac
+    # Only Zynq / ZynqMP designs can produce a BOOT.BIN
+    if is_zynq_design "$selected_project" "$selected_board"; then
+        read -r -p "Generate BOOT.BIN binary? [y/N] > " input_boot
+        if [[ "$input_boot" =~ ^[Yy] ]]; then
+            build_boot_bin="true"
+        fi
+    else
+        echo "BOOT.BIN: not applicable (design does not target a Zynq / ZynqMP device)."
+    fi
 
     # Step 5: Summary & Execution Confirmation
     echo -e "\n${BOLD}${YELLOW}[Step 5/5] Build Configuration Summary${RESET}"
@@ -672,6 +700,9 @@ execute_build() {
     local project_board_dir project_name
     project_board_dir="$(get_project_dir "$proj" "$board")"
     project_name="$(get_project_name "$proj" "$board")"
+    if [ "$boot_bin_enabled" = "true" ] && ! is_zynq_design "$proj" "$board"; then
+        echo -e "${YELLOW}[WARN]${RESET} BOOT.BIN requested but ${proj}${board:+/${board}} does not appear to target a Zynq / ZynqMP device; build_boot_bin.sh will likely fail."
+    fi
 
     echo -e "\n${BOLD}${GREEN}================================================================================${RESET}"
     echo -e "${BOLD}${GREEN} Building ADI HDL Design: ${proj}${board:+ / ${board}} [${tool}] (${HDL_RELEASE}) ${RESET}"

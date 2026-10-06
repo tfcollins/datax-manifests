@@ -1,5 +1,6 @@
 """Offline contract tests for targets/hdl/build-hdl.sh release handling."""
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -53,6 +54,18 @@ def make_upstream(path):
             for board, tool in boards.items():
                 write_project_makefile(path / "projects" / project / board,
                                        f"{project}_{board}", tool)
+        # Device info the way the real repo carries it: carrier-less projects name
+        # their part in system_project.tcl, carrier boards come from a lookup table.
+        for project, boards in projects.items():
+            if isinstance(boards, str):
+                part = "xczu3eg-sfva625-2-e" if project == "jupiter_sdr" else "xc7z010clg225-1"
+                (path / "projects" / project / "system_project.tcl").write_text(
+                    f'adi_project_create {project} 0 {{}} "{part}"\n')
+        (path / "projects/scripts").mkdir(exist_ok=True)
+        (path / "projects/scripts/adi_project_xilinx.tcl").write_text(
+            'if [regexp "_zed" $project_name] {\n  set device "xc7z020clg484-1"\n}\n'
+            'if [regexp "_zcu102" $project_name] {\n  set device "xczu9eg-ffvb1156-2-e"\n}\n'
+            'if [regexp "_vck190" $project_name] {\n  set device "xcvc1902-vsva2197-2MP-e-S"\n}\n')
         (path / "RELEASE").write_text(release + "\n")
         git(path, "add", "-A")
         git(path, "commit", "-qm", release)
@@ -78,9 +91,9 @@ class HdlGuideTests(unittest.TestCase):
         self.env = {k: v for k, v in os.environ.items()
                     if k not in ("HDL_RELEASE", "VIVADO", "XILINX_VIVADO")}
 
-    def run_script(self, *args, env=None):
+    def run_script(self, *args, env=None, input=""):
         return subprocess.run(["bash", "scripts/build-hdl.sh", *args], cwd=self.workspace,
-                              text=True, capture_output=True, timeout=60,
+                              text=True, capture_output=True, timeout=60, input=input,
                               env={**self.env, **(env or {})})
 
     def head_branch(self):
@@ -211,6 +224,42 @@ class HdlGuideTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         result = self.run_script("--project", "pluto", "--dry-run", "--release", "hdl_2023_r2")
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def wizard(self, answers):
+        result = self.run_script("--interactive", input="".join(a + "\n" for a in answers))
+        # the summary is colourised; compare plain text
+        result.stdout = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
+        return result
+
+    def test_wizard_offers_boot_bin_for_zynq_designs_only(self):
+        # release, project, [board], jobs, dir, [boot], confirm=no
+        result = self.wizard(["", "jupiter_sdr", "", "", "y", "n"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        # (read -p prompts are not emitted on a non-tty stdin, so assert on outcomes)
+        self.assertIn("Generate BOOT.BIN:     true", result.stdout)
+        self.assertIn("HDL_PROJECT=jupiter_sdr DIR_NAME=build", result.stdout)
+        self.assertIn("BUILD_BOOT_BIN=true sdk-build", result.stdout)
+        # Carrier design on a Zynq board via the lookup table
+        result = self.wizard(["", "fmcomms2", "zcu102", "", "", "y", "n"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Generate BOOT.BIN:     true", result.stdout)
+        # Versal is not Zynq: no prompt, flag stays false, confirm consumes "n"
+        result = self.wizard(["", "ad9081_fmca_ebz", "vck190", "", "", "n"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("not applicable", result.stdout)
+        self.assertIn("Generate BOOT.BIN:     false", result.stdout)
+        # Intel: no prompt either
+        result = self.wizard(["", "cn0561", "de10nano", "", "", "n"])
+        self.assertIn("not applicable", result.stdout)
+        self.assertIn("Generate BOOT.BIN:     false", result.stdout)
+
+    def test_boot_bin_warning_for_non_zynq_build(self):
+        result = self.run_script("--project", "ad9081_fmca_ebz", "--board", "vck190",
+                                 "--dry-run", "--boot-bin", "true")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("does not appear to target a Zynq", result.stdout)
+        result = self.run_script("--project", "jupiter_sdr", "--dry-run", "--boot-bin", "true")
+        self.assertNotIn("does not appear", result.stdout)
 
     def test_carrierless_clean(self):
         mf = self.workspace / "hdl/projects/jupiter_sdr/Makefile"
