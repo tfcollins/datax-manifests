@@ -107,12 +107,17 @@ jobs:
         run: bash .github/scripts/install-cim.sh "$CIM_VERSION"
 
       - name: Host packages (from the targets' os-dependencies.yml)
+        timeout-minutes: 10
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
           set -euo pipefail
           mapfile -t pkgs < <(python3 -c "import yaml; d=yaml.safe_load(open('targets/u-boot-xlnx/os-dependencies.yml')); print('\n'.join(d['linux-x86_64']['ubuntu-24.04']['packages']))")
-          sudo apt-get update -qq && sudo apt-get install -y -qq "${pkgs[@]}" >/dev/null
+          sudo apt-get -o Acquire::Retries=3 update -qq
+          sudo apt-get -o Acquire::Retries=3 install -y -qq "${pkgs[@]}" >/dev/null
 
       - name: Build u-boot.elf (${{ matrix.board }}, ${{ matrix.release }})
+        timeout-minutes: 30
         run: |
           set -euo pipefail
           cim init --source "$PWD" -t u-boot-xlnx --workspace "$RUNNER_TEMP/ws-uboot" --yes
