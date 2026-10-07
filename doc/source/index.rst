@@ -17,7 +17,6 @@ a build is selected, then pick a target.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Introduction
 
    introduction
 
@@ -33,7 +32,6 @@ a build is selected, then pick a target.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Repository
 
    repository
 
