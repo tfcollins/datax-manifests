@@ -6,8 +6,10 @@ repositories, host dependencies and build recipes cim uses to set up a
 ready-to-build workspace; the targets work with upstream cim — no fork
 required.
 
-Documentation: https://tfcollins.github.io/datax-manifests/ (built from the
-target READMEs with Sphinx + ADI's cosmic theme).
+Documentation: https://tfcollins.github.io/datax-manifests/ — introduction,
+tutorials (FMCOMMS2 + BOOT.BIN, Jupiter from source, switching releases,
+kernel for pyadi-dt) and the target references, built from these READMEs
+with Sphinx + ADI's cosmic theme.
 
 ## Getting started
 

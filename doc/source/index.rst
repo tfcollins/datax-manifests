@@ -13,12 +13,22 @@ release, project, board and platform are make variables.
    cd ~/cim-jupiter && cim makefile && make guide
 
 Start with :doc:`introduction` for where these targets sit in DataX and how
-a build is selected, then pick a target.
+a build is selected, follow a tutorial, then use the target pages as the
+reference.
 
 .. toctree::
    :maxdepth: 1
 
    introduction
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Tutorials
+
+   FMCOMMS2 + BOOT.BIN <tutorials/fmcomms2-zed-boot-bin>
+   Jupiter from source <tutorials/jupiter-sdr-from-source>
+   Switching releases <tutorials/switching-releases>
+   Kernel for pyadi-dt <tutorials/kernel-for-pyadi-dt>
 
 .. toctree::
    :maxdepth: 1
