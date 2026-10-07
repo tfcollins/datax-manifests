@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta content="DataX is Analog Devices’ integrated stack for getting data out of a signal chain and into an application: one hardware-abstraction API (libiio) with Python, MATLAB, ROS 2 and GNU Radio bindings on top, so the same application code runs whether the converter hangs off a laptop over USB or sits next to an FPGA on a Zynq board. Underneath that API are the pieces that have to be built for a given board — FPGA reference designs, boot firmware and the Linux kernel. This repository is where those builds are defined." name="description" />
+
+    <title>Introduction &#8212; datax-manifests main documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8e8a900e" />
+    <link rel="stylesheet" type="text/css" href="_static/app.min.css?v=b1d7a81a" />
+    <link rel="stylesheet" type="text/css" href="_static/css/diagrams.css?v=f154b667" />
+    <script async="async" src="_static/app.umd.js?v=daa30c51"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="FMCOMMS2 on ZedBoard with a BOOT.BIN" href="tutorials/fmcomms2-zed-boot-bin.html" />
+    <link rel="prev" title="DataX build manifests" href="index.html" />
+   
+  
+  
+  
+  <meta name="repository" content="datax-manifests">
+  <meta name="version" content="main">
+  
+    <meta name="page_source_suffix" content=".rst">
+  
+  
+  
+
+
+<style>
+  body {
+    
+  }
+
+  body.dark {
+    
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body:not(.light) {
+      
+    }
+  }
+</style>
+  </head>
+  
+    <body>
+  
+  <input type="checkbox" id="input-show-toc">
+  <input type="checkbox" id="input-show-localtoc">
+  <input type="checkbox" id="input-show-repotoc">
+
+  
+  <div class="search-area">
+    <form action="" method="get">
+      <input type="text" name="q" aria-labelledby="search-documentation" value="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" role="search" placeholder="Search"/>
+      <button class="icon"></button>
+    </form>
+  </div>
+  
+
+  <header>
+    <div id="left">
+      <label id="show-sidebar" class="icon" for="input-show-toc" title="Show/hide index"></label>
+    </div>
+    <div id="right">
+      <span>
+        <a id="logo-org" href="https://developer.analog.com/" aria-label="Analog Devices Inc. landing page"></a>
+        <div class="vertical-divider"></div>
+        
+        <label id="show-repotoc" for="input-show-repotoc" title="Show/hide docs">Documentation</label>
+        
+        <a id="logo" href="index.html">
+          <div>datax-manifests</div>
+        </a>
+      </span>
+      <span class="reverse">
+        <label id="show-localtoc" class="icon" for="input-show-localtoc" title="Show/hide contents"></label>
+      </span>
+    </div>
+  </header>
+
+
+  <div class="repotoc-tree overlay">
+    <root/>
+
+  </div>
+    <div class="localtoc">
+      <div class="tocwrapper">
+        <div class="header localtoc-header">
+          <a id="scroll-up" href="#top-anchor" title="Back to top"></a>
+        </div>
+        <nav>
+          <ul>
+<li><a class="reference internal" href="#">Introduction</a><ul>
+<li><a class="reference internal" href="#where-these-targets-sit-in-the-stack">Where these targets sit in the stack</a></li>
+<li><a class="reference internal" href="#targets">Targets</a></li>
+<li><a class="reference internal" href="#how-a-build-is-selected">How a build is selected</a></li>
+<li><a class="reference internal" href="#related-datax-projects">Related DataX projects</a></li>
+</ul>
+</li>
+</ul>
+
+        </nav>
+      </div>
+    </div>
+
+  
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+    <a id="no-logo" href="index.html">
+      datax-manifests
+    </a><input id="input-switch-toc" type="checkbox">
+<label id="show-repotoc" for="input-switch-toc">
+All content
+</label>
+<label id="show-toc" for="input-switch-toc">
+Content on this topic
+</label>
+<div class="repotoc-tree">
+  <root/>
+
+</div>
+<div class="toc-tree">
+  <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Tutorials</span>
+</p>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/fmcomms2-zed-boot-bin.html">FMCOMMS2 + BOOT.BIN</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/jupiter-sdr-from-source.html">Jupiter from source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/switching-releases.html">Switching releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/kernel-for-pyadi-dt.html">Kernel for pyadi-dt</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Targets</span>
+</p>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="targets/hdl.html">hdl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="targets/hdl-boot.html">hdl-boot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="targets/u-boot-xlnx.html">u-boot-xlnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="targets/arm-trusted-firmware.html">arm-trusted-firmware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="targets/adi-linux.html">adi-linux</a></li>
+</ul>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="repository.html">Repository</a></li>
+</ul>
+
+
+</div>
+        </div>
+      </div>
+
+  <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper" id="top-anchor">
+          <div class="body-header">
+  <nav class="breadcrumb empty"><ol></ol></nav>
+</div>
+          <div class="body" role="main">
+            
+  <section id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Link to this heading"></a></h1>
+<p><strong>DataX</strong> is Analog Devices’ integrated stack for getting data out of a signal
+chain and into an application: one hardware-abstraction API (<a class="icon link reference external" href="https://github.com/analogdevicesinc/libiio" target="_blank">libiio</a>) with
+Python, MATLAB, ROS 2 and GNU Radio bindings on top, so the same application
+code runs whether the converter hangs off a laptop over USB or sits next to an
+FPGA on a Zynq board. Underneath that API are the pieces that have to be
+<em>built</em> for a given board — FPGA reference designs, boot firmware and the
+Linux kernel. This repository is where those builds are defined.</p>
+<p><a class="icon link reference external" href="https://github.com/analogdevicesinc/cim" target="_blank">cim</a> turns each target here into a ready-to-build workspace: it clones the
+pinned source trees, installs host dependencies, copies in the build helpers
+and generates a <code class="docutils literal notranslate"><span class="pre">Makefile</span></code> whose variables select release, project, board
+and platform at build time.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cim<span class="w"> </span>init<span class="w"> </span>--source<span class="w"> </span>https://github.com/tfcollins/datax-manifests.git<span class="w"> </span>-t<span class="w"> </span>hdl-boot<span class="w"> </span>--workspace<span class="w"> </span>~/cim-jupiter<span class="w"> </span>--install
+<span class="nb">cd</span><span class="w"> </span>~/cim-jupiter<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>cim<span class="w"> </span>makefile
+make<span class="w"> </span>guide<span class="w">                                 </span><span class="c1"># interactive: release → project → board → BOOT.BIN</span>
+make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>jupiter_sdr<span class="w">     </span><span class="c1"># u-boot + BL31 + Vivado + BOOT.BIN, all from source</span>
+</pre></div>
+</div>
+<section id="where-these-targets-sit-in-the-stack">
+<h2>Where these targets sit in the stack<a class="headerlink" href="#where-these-targets-sit-in-the-stack" title="Link to this heading"></a></h2>
+<svg xmlns="http://www.w3.org/2000/svg" class="datax-diagram no-background" viewBox="0 0 780 420" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <title>The DataX stack and the layers built by datax-manifests</title>
+  <style>
+    .layer { fill: currentColor; fill-opacity: 0.05; stroke: currentColor; stroke-opacity: 0.35; }
+    .built { fill: #2d7ff9; fill-opacity: 0.12; stroke: #2d7ff9; stroke-opacity: 0.9; stroke-width: 1.5; }
+    .num   { fill: currentColor; fill-opacity: 0.55; font-size: 11px; }
+    .name  { fill: currentColor; font-weight: 600; }
+    .what  { fill: currentColor; fill-opacity: 0.75; }
+    .accent{ fill: #2d7ff9; font-weight: 600; }
+    .mono  { font-family: 'JetBrains Mono', 'Fira Mono', Consolas, monospace; font-size: 12px; fill: currentColor; fill-opacity: 0.85; }
+    .brace { fill: none; stroke: #2d7ff9; stroke-width: 1.5; }
+  </style>
+
+  <!-- layers, top (7) to bottom (1) -->
+  <g>
+    <rect class="layer" x="20" y="20"  width="440" height="46" rx="6"/>
+    <text class="num"  x="34" y="48">7</text>
+    <text class="name" x="56" y="40">Applications</text>
+    <text class="what" x="56" y="57">Scopy · IIO Oscilloscope · MATLAB toolboxes</text>
+
+    <rect class="layer" x="20" y="72"  width="440" height="46" rx="6"/>
+    <text class="num"  x="34" y="100">6</text>
+    <text class="name" x="56" y="92">Language bindings</text>
+    <text class="what" x="56" y="109">pyadi-iio · MATLAB · C/C++</text>
+
+    <rect class="layer" x="20" y="124" width="440" height="46" rx="6"/>
+    <text class="num"  x="34" y="152">5</text>
+    <text class="name" x="56" y="144">Libraries</text>
+    <text class="what" x="56" y="161">libiio / iiod — local, USB, network, serial backends</text>
+
+    <rect class="built" x="20" y="176" width="440" height="46" rx="6"/>
+    <text class="num"  x="34" y="204">4</text>
+    <text class="name" x="56" y="196">Drivers</text>
+    <text class="what" x="56" y="213">Linux IIO drivers for 1500+ ADI parts</text>
+
+    <rect class="built" x="20" y="228" width="440" height="46" rx="6"/>
+    <text class="num"  x="34" y="256">3</text>
+    <text class="name" x="56" y="248">HDL &amp; firmware</text>
+    <text class="what" x="56" y="265">ADI HDL reference designs · u-boot · Arm Trusted Firmware</text>
+
+    <rect class="layer" x="20" y="280" width="440" height="46" rx="6"/>
+    <text class="num"  x="34" y="308">2</text>
+    <text class="name" x="56" y="300">Hardware interface</text>
+    <text class="what" x="56" y="317">Zynq-7000 · Zynq UltraScale+ · Versal · Intel SoC · Lattice</text>
+
+    <rect class="layer" x="20" y="332" width="440" height="46" rx="6"/>
+    <text class="num"  x="34" y="360">1</text>
+    <text class="name" x="56" y="352">Hardware</text>
+    <text class="what" x="56" y="369">ADCs · DACs · RF transceivers (AD9361, AD9081, ADRV9002 …)</text>
+  </g>
+
+  <!-- brace marking layers 3-4 -->
+  <path class="brace" d="M 476 178 q 10 0 10 10 v 32 q 0 5 6 5 q -6 0 -6 5 v 32 q 0 10 -10 10"/>
+
+  <!-- what this repository builds -->
+  <g>
+    <text class="accent" x="506" y="196">Built by this repository</text>
+    <text class="mono" x="506" y="218">adi-linux</text>
+    <text class="what" x="664" y="218">→ kernel image</text>
+    <text class="mono" x="506" y="240">hdl, hdl-boot</text>
+    <text class="what" x="664" y="240">→ XSA, BOOT.BIN</text>
+    <text class="mono" x="506" y="262">u-boot-xlnx</text>
+    <text class="what" x="664" y="262">→ u-boot.elf</text>
+    <text class="mono" x="506" y="284">arm-trusted-firmware</text>
+    <text class="what" x="664" y="284">→ bl31.elf</text>
+  </g>
+
+  <!-- consumer note -->
+  <text class="what" x="20" y="404" font-size="12">Layers 5–7 consume what 3–4 produce; only the connection URI changes between USB, network and on-board use.</text>
+</svg>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 38.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>DataX layer</p></th>
+<th class="head"><p>What it is</p></th>
+<th class="head"><p>Built by</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>7 · Applications</p></td>
+<td><p>Scopy, IIO Oscilloscope, MATLAB toolboxes</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p>6 · Language bindings</p></td>
+<td><p><a class="icon link reference external" href="https://github.com/analogdevicesinc/pyadi-iio" target="_blank">pyadi-iio</a>, MATLAB, C/C++</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p>5 · Libraries</p></td>
+<td><p><a class="icon link reference external" href="https://github.com/analogdevicesinc/libiio" target="_blank">libiio</a> / iiod — local, USB, network, serial backends</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p>4 · Drivers</p></td>
+<td><p>Linux IIO drivers for 1500+ ADI parts</p></td>
+<td><p><a class="reference internal" href="targets/adi-linux.html"><span class="doc">adi-linux</span></a> — pinned <code class="docutils literal notranslate"><span class="pre">analogdevicesinc/linux</span></code> kernels for Zynq / ZynqMP</p></td>
+</tr>
+<tr class="row-even"><td><p>3 · HDL &amp; firmware</p></td>
+<td><p><a class="icon link reference external" href="https://github.com/analogdevicesinc/hdl" target="_blank">ADI HDL</a> FPGA reference designs, boot firmware</p></td>
+<td><p><a class="reference internal" href="targets/hdl.html"><span class="doc">hdl</span></a>, <a class="reference internal" href="targets/hdl-boot.html"><span class="doc">hdl-boot</span></a>, <a class="reference internal" href="targets/u-boot-xlnx.html"><span class="doc">u-boot-xlnx</span></a>, <a class="reference internal" href="targets/arm-trusted-firmware.html"><span class="doc">arm-trusted-firmware</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>2 · Hardware interface</p></td>
+<td><p>Zynq-7000, Zynq UltraScale+, Versal, Intel SoC, Lattice carriers</p></td>
+<td><p>selected per target (<code class="docutils literal notranslate"><span class="pre">HDL_BOARD</span></code>, <code class="docutils literal notranslate"><span class="pre">KERNEL_PLATFORM</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>1 · Hardware</p></td>
+<td><p>ADCs, DACs, RF transceivers (AD9361, AD9081, ADRV9002, …)</p></td>
+<td><p>selected per target (<code class="docutils literal notranslate"><span class="pre">HDL_PROJECT</span></code>)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Everything above layer 4 consumes what these targets produce: a bitstream /
+XSA and BOOT.BIN to boot the board, a kernel image for <a class="icon link reference external" href="https://github.com/analogdevicesinc/pyadi-dt" target="_blank">pyadi-dt</a> and
+hardware-in-the-loop testing, with the IIO devices then visible to libiio and
+pyadi-iio over any backend.</p>
+</section>
+<section id="targets">
+<h2>Targets<a class="headerlink" href="#targets" title="Link to this heading"></a></h2>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 24.0%" />
+<col style="width: 76.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Target</p></th>
+<th class="head"><p>Produces</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="targets/hdl.html"><span class="doc">hdl</span></a></p></td>
+<td><p>Any <a class="icon link reference external" href="https://github.com/analogdevicesinc/hdl" target="_blank">ADI HDL</a> project/carrier for Vivado, Quartus or Radiant. <code class="docutils literal notranslate"><span class="pre">HDL_RELEASE</span></code>
+picks the branch/tag and the matching Vivado; guided wizard and
+project/board matrix inspection; optional BOOT.BIN from ADI’s prebuilt
+u-boot.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="targets/hdl-boot.html"><span class="doc">hdl-boot</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">extends:</span> <span class="pre">hdl</span></code> — the same workspace with <code class="docutils literal notranslate"><span class="pre">u-boot-xlnx</span></code> and
+<code class="docutils literal notranslate"><span class="pre">arm-trusted-firmware</span></code> built from source first, so the BOOT.BIN has
+no downloaded blobs.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="targets/u-boot-xlnx.html"><span class="doc">u-boot-xlnx</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">u-boot.elf</span></code> for ADI / AMD Zynq boards from <code class="docutils literal notranslate"><span class="pre">analogdevicesinc/u-boot-xlnx</span></code>
+(<code class="docutils literal notranslate"><span class="pre">UBOOT_BOARD</span></code> presets). No EDA tools needed.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="targets/arm-trusted-firmware.html"><span class="doc">arm-trusted-firmware</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bl31.elf</span></code> for ZynqMP / Versal, tag matched to the Vivado release.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="targets/adi-linux.html"><span class="doc">adi-linux</span></a></p></td>
+<td><p>Kernel-only <code class="docutils literal notranslate"><span class="pre">uImage</span></code> / <code class="docutils literal notranslate"><span class="pre">Image</span></code> from checksum-pinned source and
+toolchains, publishing an <code class="docutils literal notranslate"><span class="pre">artifacts.json</span></code> contract for consumers.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Every target works with upstream <a class="icon link reference external" href="https://github.com/analogdevicesinc/cim" target="_blank">cim</a> — no fork — and is exercised in CI
+against the pinned cim release: u-boot and BL31 compile on hosted runners,
+the HDL targets on a self-hosted Vivado host.</p>
+</section>
+<section id="how-a-build-is-selected">
+<h2>How a build is selected<a class="headerlink" href="#how-a-build-is-selected" title="Link to this heading"></a></h2>
+<svg xmlns="http://www.w3.org/2000/svg" class="datax-diagram no-background" viewBox="0 0 940 400" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12">
+  <title>hdl-boot: how make sdk-build produces a BOOT.BIN from source</title>
+  <style>
+    .box   { fill: currentColor; fill-opacity: 0.05; stroke: currentColor; stroke-opacity: 0.4; }
+    .step  { fill: #2d7ff9; fill-opacity: 0.10; stroke: #2d7ff9; stroke-opacity: 0.9; stroke-width: 1.5; }
+    .out   { fill: #2d7ff9; fill-opacity: 0.22; stroke: #2d7ff9; stroke-width: 1.5; }
+    .t     { fill: currentColor; }
+    .h     { fill: currentColor; font-weight: 600; }
+    .dim   { fill: currentColor; fill-opacity: 0.7; font-size: 11px; }
+    .mono  { font-family: 'JetBrains Mono', 'Fira Mono', Consolas, monospace; font-size: 11px; fill: currentColor; fill-opacity: 0.9; }
+    .edge  { fill: none; stroke: currentColor; stroke-opacity: 0.55; stroke-width: 1.5; marker-end: url(#arrow); }
+    .lane  { fill: none; stroke: currentColor; stroke-opacity: 0.18; stroke-dasharray: 4 4; }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" fill-opacity="0.55"/>
+    </marker>
+  </defs>
+
+  <!-- 1. cim init -->
+  <rect class="box" x="20" y="130" width="150" height="140" rx="6"/>
+  <text class="h" x="32" y="150">cim init -t hdl-boot</text>
+  <text class="dim" x="32" y="170">clones</text>
+  <text class="mono" x="40" y="186">hdl/</text>
+  <text class="mono" x="40" y="201">u-boot-xlnx/</text>
+  <text class="mono" x="40" y="216">arm-trusted-firmware/</text>
+  <text class="dim" x="32" y="236">copies</text>
+  <text class="mono" x="40" y="252">scripts/build-*.sh</text>
+  <path class="edge" d="M 170 200 H 200"/>
+
+  <!-- 2. make sdk-build -->
+  <rect class="box" x="202" y="150" width="184" height="100" rx="6"/>
+  <text class="h" x="214" y="172">make sdk-build</text>
+  <text class="mono" x="214" y="192">HDL_RELEASE=hdl_2026_r1</text>
+  <text class="mono" x="214" y="207">HDL_PROJECT=jupiter_sdr</text>
+  <text class="mono" x="214" y="222">HDL_BOARD=…</text>
+  <text class="dim" x="214" y="240">depends_on → runs first:</text>
+
+  <!-- fan-out edges -->
+  <path class="edge" d="M 386 200 H 404 V 70  H 428"/>
+  <path class="edge" d="M 386 200 H 404 V 200 H 428"/>
+  <path class="edge" d="M 386 200 H 404 V 330 H 428"/>
+
+  <!-- 3a. u-boot -->
+  <rect class="step" x="430" y="40" width="190" height="60" rx="6"/>
+  <text class="h" x="442" y="60">build-uboot.sh</text>
+  <text class="dim" x="442" y="76">preset from project/board;</text>
+  <text class="dim" x="442" y="90">ref follows HDL_RELEASE</text>
+  <rect class="out" x="650" y="52" width="100" height="36" rx="6"/>
+  <text class="mono" x="665" y="74">u-boot.elf</text>
+  <path class="edge" d="M 620 70 H 648"/>
+
+  <!-- 3b. ATF -->
+  <rect class="step" x="430" y="170" width="190" height="60" rx="6"/>
+  <text class="h" x="442" y="190">build-atf.sh</text>
+  <text class="dim" x="442" y="206">PLAT from the device (zynqmp /</text>
+  <text class="dim" x="442" y="220">versal); skipped for Zynq-7000</text>
+  <rect class="out" x="650" y="182" width="100" height="36" rx="6"/>
+  <text class="mono" x="673" y="204">bl31.elf</text>
+  <path class="edge" d="M 620 200 H 648"/>
+
+  <!-- 3c. HDL -->
+  <rect class="step" x="430" y="300" width="190" height="60" rx="6"/>
+  <text class="h" x="442" y="320">build-hdl.sh</text>
+  <text class="dim" x="442" y="336">switch hdl/ to release,</text>
+  <text class="dim" x="442" y="350">Vivado synth + implement</text>
+  <rect class="out" x="650" y="312" width="100" height="36" rx="6"/>
+  <text class="mono" x="656" y="334">system_top.xsa</text>
+  <path class="edge" d="M 620 330 H 648"/>
+
+  <!-- fan-in to BOOT.BIN helper -->
+  <path class="edge" d="M 750 70  H 768 V 200 H 786"/>
+  <path class="edge" d="M 750 200 H 786"/>
+  <path class="edge" d="M 750 330 H 768 V 200 H 786"/>
+
+  <!-- 4. boot bin -->
+  <rect class="step" x="788" y="150" width="140" height="100" rx="6"/>
+  <text class="h" x="798" y="170">build_*_boot_bin.sh</text>
+  <text class="dim" x="798" y="188">xsct: FSBL, PMUFW</text>
+  <text class="dim" x="798" y="202">bootgen:</text>
+  <text class="dim" x="798" y="216">fsbl + pmufw + bit</text>
+  <text class="dim" x="798" y="230">+ bl31 + u-boot</text>
+  <path class="edge" d="M 858 250 V 286"/>
+  <rect class="out" x="820" y="288" width="76" height="34" rx="6"/>
+  <text class="h" x="831" y="310">BOOT.BIN</text>
+
+  <!-- lane hints -->
+  <text class="dim" x="430" y="26">u-boot-xlnx/</text>
+  <text class="dim" x="430" y="156">arm-trusted-firmware/</text>
+  <text class="dim" x="430" y="286">hdl/projects/&lt;project&gt;/</text>
+  <text class="dim" x="20" y="390">BOOT_BIN_UBOOT=download / BOOT_BIN_ATF=download replace a lane with ADI's prebuilt file; BUILD_BOOT_BIN=false skips both lanes and the final step.</text>
+</svg>
+<p>The <code class="docutils literal notranslate"><span class="pre">gits:</span></code> pins in a manifest are only the starting checkout. The release
+you actually build is a make variable, and the helper scripts switch the
+clone to it, derive the right tool version, and reject a dirty worktree:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>list-combos<span class="w"> </span><span class="nv">HDL_RELEASE</span><span class="o">=</span>hdl_2023_r2<span class="w">            </span><span class="c1"># hdl/ → hdl_2023_r2, Vivado 2023.2</span>
+make<span class="w"> </span>sdk-build<span class="w">  </span><span class="nv">HDL_RELEASE</span><span class="o">=</span>hdl_2023_r2<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>fmcomms2<span class="w"> </span><span class="nv">HDL_BOARD</span><span class="o">=</span>zed<span class="w"> </span><span class="nv">BUILD_BOOT_BIN</span><span class="o">=</span><span class="nb">true</span>
+make<span class="w"> </span>sdk-build<span class="w">  </span><span class="nv">KERNEL_RELEASE</span><span class="o">=</span>2026_R1<span class="w"> </span><span class="nv">KERNEL_PLATFORM</span><span class="o">=</span>zynqmp<span class="w">     </span><span class="c1"># adi-linux</span>
+</pre></div>
+</div>
+<p>The u-boot and ATF refs follow the same release (Xilinx reference boards
+track <code class="docutils literal notranslate"><span class="pre">xlnx_rebase_*</span></code> / <code class="docutils literal notranslate"><span class="pre">xilinx-v*</span></code> tags; ADI SOM designs such as
+<code class="docutils literal notranslate"><span class="pre">jupiter_sdr</span></code> pin their own branches), so <code class="docutils literal notranslate"><span class="pre">hdl-boot</span></code> only ever asks for
+the HDL release, project and board.</p>
+</section>
+<section id="related-datax-projects">
+<h2>Related DataX projects<a class="headerlink" href="#related-datax-projects" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="icon link reference external" href="https://github.com/analogdevicesinc/cim" target="_blank">cim</a> — the workspace/manifest tool these targets are written for</p></li>
+<li><p><a class="icon link reference external" href="https://github.com/analogdevicesinc/hdl" target="_blank">ADI HDL</a> — FPGA reference designs built by the <code class="docutils literal notranslate"><span class="pre">hdl</span></code> targets</p></li>
+<li><p><a class="icon link reference external" href="https://github.com/analogdevicesinc/linux" target="_blank">analogdevicesinc/linux</a> — the kernel built by <code class="docutils literal notranslate"><span class="pre">adi-linux</span></code></p></li>
+<li><p><a class="icon link reference external" href="https://github.com/analogdevicesinc/libiio" target="_blank">libiio</a> and <a class="icon link reference external" href="https://github.com/analogdevicesinc/pyadi-iio" target="_blank">pyadi-iio</a> — the API and Python bindings that sit on top</p></li>
+<li><p><a class="icon link reference external" href="https://github.com/analogdevicesinc/pyadi-dt" target="_blank">pyadi-dt</a> — device-tree generation; consumes <code class="docutils literal notranslate"><span class="pre">adi-linux</span></code> artifacts</p></li>
+<li><p><a class="icon link reference external" href="https://github.com/analogdevicesinc/wiki-scripts" target="_blank">wiki-scripts</a> — source of the BOOT.BIN helper scripts</p></li>
+</ul>
+</section>
+</section>
+
+
+          </div>
+              <div class="related">
+                &nbsp;
+    <a href="index.html" title="Previous document (Alt+Shift+LeftArrow)" class="prev">DataX build manifests</a>
+    <a href="tutorials/fmcomms2-zed-boot-bin.html" title="Next document (Alt+Shift+RightArrow)" class="next">FMCOMMS2 on ZedBoard with a BOOT.BIN</a>
+              </div>
+          
+        </div>
+      </div>
+  </div>
+
+  <label id="cancel-area-show-toc" for="input-show-toc"></label>
+  <label id="cancel-area-show-localtoc" for="input-show-localtoc"></label>
+    <footer>
+      &#169;2026, Analog Devices, Inc
+      
+      |
+      Made with <a href="https://www.sphinx-doc.org/">Sphinx</a>
+      &amp; <a href="https://github.com/analogdevicesinc/doctools">Doctools</a>
+      
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta content="HDL + BOOT.BIN from source" name="description" />
+
+    <title>hdl-boot &#8212; datax-manifests main documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8e8a900e" />
+    <link rel="stylesheet" type="text/css" href="../_static/app.min.css?v=b1d7a81a" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/diagrams.css?v=f154b667" />
+    <script async="async" src="../_static/app.umd.js?v=daa30c51"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="u-boot-xlnx" href="u-boot-xlnx.html" />
+    <link rel="prev" title="hdl" href="hdl.html" />
+   
+  
+  
+  
+  <meta name="repository" content="datax-manifests">
+  <meta name="version" content="main">
+  
+    <meta name="page_source_suffix" content=".md">
+  
+  
+  
+
+
+<style>
+  body {
+    
+  }
+
+  body.dark {
+    
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body:not(.light) {
+      
+    }
+  }
+</style>
+  </head>
+  
+    <body>
+  
+  <input type="checkbox" id="input-show-toc">
+  <input type="checkbox" id="input-show-localtoc">
+  <input type="checkbox" id="input-show-repotoc">
+
+  
+  <div class="search-area">
+    <form action="" method="get">
+      <input type="text" name="q" aria-labelledby="search-documentation" value="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" role="search" placeholder="Search"/>
+      <button class="icon"></button>
+    </form>
+  </div>
+  
+
+  <header>
+    <div id="left">
+      <label id="show-sidebar" class="icon" for="input-show-toc" title="Show/hide index"></label>
+    </div>
+    <div id="right">
+      <span>
+        <a id="logo-org" href="https://developer.analog.com/" aria-label="Analog Devices Inc. landing page"></a>
+        <div class="vertical-divider"></div>
+        
+        <label id="show-repotoc" for="input-show-repotoc" title="Show/hide docs">Documentation</label>
+        
+        <a id="logo" href="../index.html">
+          <div>datax-manifests</div>
+        </a>
+      </span>
+      <span class="reverse">
+        <label id="show-localtoc" class="icon" for="input-show-localtoc" title="Show/hide contents"></label>
+      </span>
+    </div>
+  </header>
+
+
+  <div class="repotoc-tree overlay">
+    <root/>
+
+  </div>
+    <div class="localtoc">
+      <div class="tocwrapper">
+        <div class="header localtoc-header">
+          <a id="scroll-up" href="#top-anchor" title="Back to top"></a>
+        </div>
+        <nav>
+          <ul>
+<li><a class="reference internal" href="#">hdl-boot</a><ul>
+<li><a class="reference internal" href="#quick-start">Quick start</a></li>
+<li><a class="reference internal" href="#guided-wizard">Guided wizard</a></li>
+<li><a class="reference internal" href="#how-it-composes">How it composes</a></li>
+<li><a class="reference internal" href="#verification">Verification</a></li>
+</ul>
+</li>
+</ul>
+
+        </nav>
+      </div>
+    </div>
+
+  
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+    <a id="no-logo" href="../index.html">
+      datax-manifests
+    </a><input id="input-switch-toc" type="checkbox">
+<label id="show-repotoc" for="input-switch-toc">
+All content
+</label>
+<label id="show-toc" for="input-switch-toc">
+Content on this topic
+</label>
+<div class="repotoc-tree">
+  <root/>
+
+</div>
+<div class="toc-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Tutorials</span>
+</p>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/fmcomms2-zed-boot-bin.html">FMCOMMS2 + BOOT.BIN</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/jupiter-sdr-from-source.html">Jupiter from source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/switching-releases.html">Switching releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/kernel-for-pyadi-dt.html">Kernel for pyadi-dt</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Targets</span>
+</p>
+
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="hdl.html">hdl</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">hdl-boot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="u-boot-xlnx.html">u-boot-xlnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arm-trusted-firmware.html">arm-trusted-firmware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="adi-linux.html">adi-linux</a></li>
+</ul>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../repository.html">Repository</a></li>
+</ul>
+
+
+</div>
+        </div>
+      </div>
+
+  <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper" id="top-anchor">
+          <div class="body-header">
+  <nav class="breadcrumb empty"><ol></ol></nav>
+</div>
+          <div class="body" role="main">
+            
+  <section id="hdl-boot">
+<h1>hdl-boot<a class="headerlink" href="#hdl-boot" title="Link to this heading"></a></h1>
+<p><em>HDL + BOOT.BIN from source</em></p>
+<svg xmlns="http://www.w3.org/2000/svg" class="datax-diagram no-background" viewBox="0 0 940 400" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12">
+  <title>hdl-boot: how make sdk-build produces a BOOT.BIN from source</title>
+  <style>
+    .box   { fill: currentColor; fill-opacity: 0.05; stroke: currentColor; stroke-opacity: 0.4; }
+    .step  { fill: #2d7ff9; fill-opacity: 0.10; stroke: #2d7ff9; stroke-opacity: 0.9; stroke-width: 1.5; }
+    .out   { fill: #2d7ff9; fill-opacity: 0.22; stroke: #2d7ff9; stroke-width: 1.5; }
+    .t     { fill: currentColor; }
+    .h     { fill: currentColor; font-weight: 600; }
+    .dim   { fill: currentColor; fill-opacity: 0.7; font-size: 11px; }
+    .mono  { font-family: 'JetBrains Mono', 'Fira Mono', Consolas, monospace; font-size: 11px; fill: currentColor; fill-opacity: 0.9; }
+    .edge  { fill: none; stroke: currentColor; stroke-opacity: 0.55; stroke-width: 1.5; marker-end: url(#arrow); }
+    .lane  { fill: none; stroke: currentColor; stroke-opacity: 0.18; stroke-dasharray: 4 4; }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" fill-opacity="0.55"/>
+    </marker>
+  </defs>
+
+  <!-- 1. cim init -->
+  <rect class="box" x="20" y="130" width="150" height="140" rx="6"/>
+  <text class="h" x="32" y="150">cim init -t hdl-boot</text>
+  <text class="dim" x="32" y="170">clones</text>
+  <text class="mono" x="40" y="186">hdl/</text>
+  <text class="mono" x="40" y="201">u-boot-xlnx/</text>
+  <text class="mono" x="40" y="216">arm-trusted-firmware/</text>
+  <text class="dim" x="32" y="236">copies</text>
+  <text class="mono" x="40" y="252">scripts/build-*.sh</text>
+  <path class="edge" d="M 170 200 H 200"/>
+
+  <!-- 2. make sdk-build -->
+  <rect class="box" x="202" y="150" width="184" height="100" rx="6"/>
+  <text class="h" x="214" y="172">make sdk-build</text>
+  <text class="mono" x="214" y="192">HDL_RELEASE=hdl_2026_r1</text>
+  <text class="mono" x="214" y="207">HDL_PROJECT=jupiter_sdr</text>
+  <text class="mono" x="214" y="222">HDL_BOARD=…</text>
+  <text class="dim" x="214" y="240">depends_on → runs first:</text>
+
+  <!-- fan-out edges -->
+  <path class="edge" d="M 386 200 H 404 V 70  H 428"/>
+  <path class="edge" d="M 386 200 H 404 V 200 H 428"/>
+  <path class="edge" d="M 386 200 H 404 V 330 H 428"/>
+
+  <!-- 3a. u-boot -->
+  <rect class="step" x="430" y="40" width="190" height="60" rx="6"/>
+  <text class="h" x="442" y="60">build-uboot.sh</text>
+  <text class="dim" x="442" y="76">preset from project/board;</text>
+  <text class="dim" x="442" y="90">ref follows HDL_RELEASE</text>
+  <rect class="out" x="650" y="52" width="100" height="36" rx="6"/>
+  <text class="mono" x="665" y="74">u-boot.elf</text>
+  <path class="edge" d="M 620 70 H 648"/>
+
+  <!-- 3b. ATF -->
+  <rect class="step" x="430" y="170" width="190" height="60" rx="6"/>
+  <text class="h" x="442" y="190">build-atf.sh</text>
+  <text class="dim" x="442" y="206">PLAT from the device (zynqmp /</text>
+  <text class="dim" x="442" y="220">versal); skipped for Zynq-7000</text>
+  <rect class="out" x="650" y="182" width="100" height="36" rx="6"/>
+  <text class="mono" x="673" y="204">bl31.elf</text>
+  <path class="edge" d="M 620 200 H 648"/>
+
+  <!-- 3c. HDL -->
+  <rect class="step" x="430" y="300" width="190" height="60" rx="6"/>
+  <text class="h" x="442" y="320">build-hdl.sh</text>
+  <text class="dim" x="442" y="336">switch hdl/ to release,</text>
+  <text class="dim" x="442" y="350">Vivado synth + implement</text>
+  <rect class="out" x="650" y="312" width="100" height="36" rx="6"/>
+  <text class="mono" x="656" y="334">system_top.xsa</text>
+  <path class="edge" d="M 620 330 H 648"/>
+
+  <!-- fan-in to BOOT.BIN helper -->
+  <path class="edge" d="M 750 70  H 768 V 200 H 786"/>
+  <path class="edge" d="M 750 200 H 786"/>
+  <path class="edge" d="M 750 330 H 768 V 200 H 786"/>
+
+  <!-- 4. boot bin -->
+  <rect class="step" x="788" y="150" width="140" height="100" rx="6"/>
+  <text class="h" x="798" y="170">build_*_boot_bin.sh</text>
+  <text class="dim" x="798" y="188">xsct: FSBL, PMUFW</text>
+  <text class="dim" x="798" y="202">bootgen:</text>
+  <text class="dim" x="798" y="216">fsbl + pmufw + bit</text>
+  <text class="dim" x="798" y="230">+ bl31 + u-boot</text>
+  <path class="edge" d="M 858 250 V 286"/>
+  <rect class="out" x="820" y="288" width="76" height="34" rx="6"/>
+  <text class="h" x="831" y="310">BOOT.BIN</text>
+
+  <!-- lane hints -->
+  <text class="dim" x="430" y="26">u-boot-xlnx/</text>
+  <text class="dim" x="430" y="156">arm-trusted-firmware/</text>
+  <text class="dim" x="430" y="286">hdl/projects/&lt;project&gt;/</text>
+  <text class="dim" x="20" y="390">BOOT_BIN_UBOOT=download / BOOT_BIN_ATF=download replace a lane with ADI's prebuilt file; BUILD_BOOT_BIN=false skips both lanes and the final step.</text>
+</svg>
+<p><code class="docutils literal notranslate"><span class="pre">extends:</span> <span class="pre">hdl</span></code>. One workspace that clones <code class="docutils literal notranslate"><span class="pre">analogdevicesinc/hdl</span></code>,
+<code class="docutils literal notranslate"><span class="pre">analogdevicesinc/u-boot-xlnx</span></code> and <code class="docutils literal notranslate"><span class="pre">Xilinx/arm-trusted-firmware</span></code>, builds
+<code class="docutils literal notranslate"><span class="pre">u-boot.elf</span></code> and <code class="docutils literal notranslate"><span class="pre">bl31.elf</span></code> for the selected design, then builds the HDL and
+produces a BOOT.BIN from those locally built parts instead of ADI’s prebuilt
+downloads. Everything the <a class="reference internal" href="hdl.html"><span class="doc">hdl</span></a> target does
+(<code class="docutils literal notranslate"><span class="pre">HDL_RELEASE</span></code>, <code class="docutils literal notranslate"><span class="pre">HDL_PROJECT</span></code>, <code class="docutils literal notranslate"><span class="pre">HDL_BOARD</span></code>, <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">guide</span></code>, <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">list-combos</span></code>,
+…) works unchanged here.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>cim init -t hdl-boot …
+make sdk-build HDL_PROJECT=jupiter_sdr
+   ├─ u-boot-xlnx          → make boot-uboot   (scripts/build-uboot.sh, preset from the design)
+   ├─ arm-trusted-firmware → make boot-atf     (scripts/build-atf.sh, zynqmp/versal; skipped for Zynq-7000)
+   └─ scripts/build-hdl.sh … --boot-bin true --boot-bin-uboot $(WORKSPACE)/u-boot-xlnx/u-boot.elf
+                                              --boot-bin-atf   $(WORKSPACE)/arm-trusted-firmware/bl31.elf
+</pre></div>
+</div>
+<section id="quick-start">
+<h2>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cim<span class="w"> </span>init<span class="w"> </span>--target<span class="w"> </span>hdl-boot<span class="w"> </span>--source<span class="w"> </span>https://github.com/tfcollins/datax-manifests.git<span class="w"> </span>--workspace<span class="w"> </span>~/cim-hdl-boot<span class="w"> </span>--install
+<span class="nb">cd</span><span class="w"> </span>~/cim-hdl-boot<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>cim<span class="w"> </span>makefile
+
+make<span class="w"> </span>boot-dry-run<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>jupiter_sdr<span class="w">        </span><span class="c1"># show the u-boot / ATF resolution</span>
+make<span class="w"> </span>sdk-build<span class="w">    </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>jupiter_sdr<span class="w">        </span><span class="c1"># u-boot + bl31 + Vivado + BOOT.BIN</span>
+make<span class="w"> </span>sdk-build<span class="w">    </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>fmcomms2<span class="w"> </span><span class="nv">HDL_BOARD</span><span class="o">=</span>zed<span class="w"> </span><span class="nv">HDL_RELEASE</span><span class="o">=</span>hdl_2023_r2
+</pre></div>
+</div>
+</section>
+<section id="guided-wizard">
+<h2>Guided wizard<a class="headerlink" href="#guided-wizard" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">guide</span></code> is the same wizard as the <code class="docutils literal notranslate"><span class="pre">hdl</span></code> target, made boot-aware by the
+presence of the u-boot / ATF helpers in the workspace:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[Step 4/5] Configure Build Options
+Generate BOOT.BIN binary (zynqmp)? [Y/n] &gt;
+Boot components (this workspace can build u-boot and ATF from source):
+  u-boot:  jupiter-sdr / xilinx_zynqmp_virt_defconfig / zynqmp-jupiter-sdr
+  ATF:     zynqmp @ xilinx-v2025.1
+Build u-boot and ATF from source? [Y/n] (n = use ADI's prebuilt downloads) &gt;
+
+[Step 5/5] Build Configuration Summary
+  Generate BOOT.BIN:     true (zynqmp)
+  Boot components:       from source (u-boot: …; ATF: xilinx-v2025.1)
+Equivalent CIM / Make command:
+  make HDL_RELEASE=hdl_2026_r1 HDL_PROJECT=jupiter_sdr DIR_NAME=build MAKE_JOBS="-j8" BUILD_BOOT_BIN=true sdk-build
+</pre></div>
+</div>
+<p>The u-boot preset, ref and device tree and the ATF platform/tag are derived
+from the release, project and board chosen in the earlier steps — nothing
+extra to answer. Answering <code class="docutils literal notranslate"><span class="pre">n</span></code> to “from source” appends
+<code class="docutils literal notranslate"><span class="pre">BOOT_BIN_UBOOT=download</span> <span class="pre">BOOT_BIN_ATF=download</span></code>; a design with no u-boot
+preset falls back to the download with a hint to set <code class="docutils literal notranslate"><span class="pre">UBOOT_REF</span></code> /
+<code class="docutils literal notranslate"><span class="pre">UBOOT_DEFCONFIG</span></code> / <code class="docutils literal notranslate"><span class="pre">UBOOT_DEVICE_TREE</span></code>. Confirming runs <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">sdk-build</span></code>
+with those variables so u-boot and ATF are built (or skipped) before the HDL.
+<code class="docutils literal notranslate"><span class="pre">BUILD_BOOT_BIN=false</span></code> or <code class="docutils literal notranslate"><span class="pre">BOOT_BIN_*=download</span></code> skip the source builds
+entirely.</p>
+</section>
+<section id="how-it-composes">
+<h2>How it composes<a class="headerlink" href="#how-it-composes" title="Link to this heading"></a></h2>
+<p>cim’s <code class="docutils literal notranslate"><span class="pre">extends:</span></code> merges the <code class="docutils literal notranslate"><span class="pre">hdl</span></code> manifest with this one in a single
+workspace; the two extra <code class="docutils literal notranslate"><span class="pre">gits:</span></code> each carry their own <code class="docutils literal notranslate"><span class="pre">build:</span></code> so the
+generated Makefile has <code class="docutils literal notranslate"><span class="pre">u-boot-xlnx</span></code> and <code class="docutils literal notranslate"><span class="pre">arm-trusted-firmware</span></code> targets, and
+<code class="docutils literal notranslate"><span class="pre">sdk-build</span></code> lists them in <code class="docutils literal notranslate"><span class="pre">depends_on</span></code>. The <code class="docutils literal notranslate"><span class="pre">overlay:</span></code> sets
+<code class="docutils literal notranslate"><span class="pre">BUILD_BOOT_BIN=true</span></code> and points <code class="docutils literal notranslate"><span class="pre">BOOT_BIN_UBOOT</span></code> / <code class="docutils literal notranslate"><span class="pre">BOOT_BIN_ATF</span></code> at the
+workspace-built files. The helper scripts are the same files as in the
+standalone <a class="reference internal" href="u-boot-xlnx.html"><span class="doc">u-boot-xlnx</span></a> and
+<a class="reference internal" href="arm-trusted-firmware.html"><span class="doc">arm-trusted-firmware</span></a> targets
+(symlinked in this directory, as are <code class="docutils literal notranslate"><span class="pre">build-hdl.sh</span></code> / <code class="docutils literal notranslate"><span class="pre">hdl.mk</span></code> from <code class="docutils literal notranslate"><span class="pre">hdl</span></code> and
+<code class="docutils literal notranslate"><span class="pre">os-dependencies.yml</span></code> from <code class="docutils literal notranslate"><span class="pre">u-boot-xlnx</span></code>). The <code class="docutils literal notranslate"><span class="pre">hdl</span></code> helpers are deliberately
+re-declared as this target’s own <code class="docutils literal notranslate"><span class="pre">copy_files</span></code> (the <code class="docutils literal notranslate"><span class="pre">overlay:</span></code> removes the
+inherited entries) so that <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">guide</span></code> and <code class="docutils literal notranslate"><span class="pre">sdk-build</span></code> exist with any
+<code class="docutils literal notranslate"><span class="pre">--source</span></code> form — upstream cim ≤ 1.2.4 skips an ancestor’s local
+<code class="docutils literal notranslate"><span class="pre">copy_files</span></code> when <code class="docutils literal notranslate"><span class="pre">--source</span></code> is relative
+(<a class="icon link reference external" href="https://github.com/analogdevicesinc/cim/pull/89" target="_blank">cim#89</a>). The <code class="docutils literal notranslate"><span class="pre">hdl</span></code>
+level’s own <code class="docutils literal notranslate"><span class="pre">os-dependencies.yml</span></code> is still installed, since cim processes
+every level’s file.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">UBOOT_BOARD</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">auto</span></code></p></td>
+<td><p>u-boot preset; <code class="docutils literal notranslate"><span class="pre">auto</span></code> derives it from <code class="docutils literal notranslate"><span class="pre">HDL_PROJECT</span></code> / <code class="docutils literal notranslate"><span class="pre">HDL_BOARD</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">UBOOT_REF</span></code>, <code class="docutils literal notranslate"><span class="pre">UBOOT_DEFCONFIG</span></code>, <code class="docutils literal notranslate"><span class="pre">UBOOT_DEVICE_TREE</span></code></p></td>
+<td><p>(empty)</p></td>
+<td><p>Per-field overrides for boards without a preset</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ATF_PLAT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">auto</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">zynqmp</span></code> / <code class="docutils literal notranslate"><span class="pre">versal</span></code>; <code class="docutils literal notranslate"><span class="pre">auto</span></code> asks <code class="docutils literal notranslate"><span class="pre">build-hdl.sh</span> <span class="pre">--boot-arch</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ATF_REF</span></code>, <code class="docutils literal notranslate"><span class="pre">ATF_CONSOLE</span></code></p></td>
+<td><p>(empty), <code class="docutils literal notranslate"><span class="pre">cadence0</span></code></p></td>
+<td><p>As in the standalone target</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Release coupling: <code class="docutils literal notranslate"><span class="pre">HDL_RELEASE</span></code> drives the u-boot tag for Xilinx reference
+boards and the ATF tag for everyone (<code class="docutils literal notranslate"><span class="pre">hdl_2023_r2</span></code> → 2023.2, <code class="docutils literal notranslate"><span class="pre">hdl_2026_r1</span></code> →
+2025.1); ADI boards’ u-boot comes from their fixed branches regardless.</p>
+<p>Designs without a boot ROM (Kintex/Virtex, Intel, Lattice) have no u-boot
+preset and no BL31 — use the plain <code class="docutils literal notranslate"><span class="pre">hdl</span></code> target for those. Overriding
+<code class="docutils literal notranslate"><span class="pre">BOOT_BIN_UBOOT=download</span></code> on the command line falls back to ADI’s prebuilt
+blob for a single build without changing the manifest.</p>
+</section>
+<section id="verification">
+<h2>Verification<a class="headerlink" href="#verification" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">tests/test_boot_components.py</span></code> covers preset/ref resolution and the manifest
+wiring offline; CI builds <code class="docutils literal notranslate"><span class="pre">u-boot.elf</span></code> for <code class="docutils literal notranslate"><span class="pre">jupiter_sdr</span></code> and <code class="docutils literal notranslate"><span class="pre">zed</span></code> and
+<code class="docutils literal notranslate"><span class="pre">bl31.elf</span></code> for ZynqMP on a hosted runner, and smoke-inits this target on
+hdl-dev-2. A full <code class="docutils literal notranslate"><span class="pre">hdl-boot</span></code> build with Vivado is the manual dispatch job.</p>
+</section>
+</section>
+
+
+          </div>
+              <div class="related">
+                &nbsp;
+    <a href="hdl.html" title="Previous document (Alt+Shift+LeftArrow)" class="prev">hdl</a>
+    <a href="u-boot-xlnx.html" title="Next document (Alt+Shift+RightArrow)" class="next">u-boot-xlnx</a>
+              </div>
+          
+        </div>
+      </div>
+  </div>
+
+  <label id="cancel-area-show-toc" for="input-show-toc"></label>
+  <label id="cancel-area-show-localtoc" for="input-show-localtoc"></label>
+    <footer>
+      &#169;2026, Analog Devices, Inc
+      
+      |
+      Made with <a href="https://www.sphinx-doc.org/">Sphinx</a>
+      &amp; <a href="https://github.com/analogdevicesinc/doctools">Doctools</a>
+      
+    </footer>
+  </body>
+</html>

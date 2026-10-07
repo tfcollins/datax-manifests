@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta content="cim manifests for Analog Devices HDL and Linux kernel workspaces. Each target under targets/ describes the repositories, host dependencies and build recipes cim uses to set up a ready-to-build workspace; the targets work with upstream cim — no fork required." name="description" />
+
+    <title>Repository &#8212; datax-manifests main documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8e8a900e" />
+    <link rel="stylesheet" type="text/css" href="_static/app.min.css?v=b1d7a81a" />
+    <link rel="stylesheet" type="text/css" href="_static/css/diagrams.css?v=f154b667" />
+    <script async="async" src="_static/app.umd.js?v=daa30c51"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="adi-linux" href="targets/adi-linux.html" />
+   
+  
+  
+  
+  <meta name="repository" content="datax-manifests">
+  <meta name="version" content="main">
+  
+    <meta name="page_source_suffix" content=".md">
+  
+  
+  
+
+
+<style>
+  body {
+    
+  }
+
+  body.dark {
+    
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body:not(.light) {
+      
+    }
+  }
+</style>
+  </head>
+  
+    <body>
+  
+  <input type="checkbox" id="input-show-toc">
+  <input type="checkbox" id="input-show-localtoc">
+  <input type="checkbox" id="input-show-repotoc">
+
+  
+  <div class="search-area">
+    <form action="" method="get">
+      <input type="text" name="q" aria-labelledby="search-documentation" value="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" role="search" placeholder="Search"/>
+      <button class="icon"></button>
+    </form>
+  </div>
+  
+
+  <header>
+    <div id="left">
+      <label id="show-sidebar" class="icon" for="input-show-toc" title="Show/hide index"></label>
+    </div>
+    <div id="right">
+      <span>
+        <a id="logo-org" href="https://developer.analog.com/" aria-label="Analog Devices Inc. landing page"></a>
+        <div class="vertical-divider"></div>
+        
+        <label id="show-repotoc" for="input-show-repotoc" title="Show/hide docs">Documentation</label>
+        
+        <a id="logo" href="index.html">
+          <div>datax-manifests</div>
+        </a>
+      </span>
+      <span class="reverse">
+        <label id="show-localtoc" class="icon" for="input-show-localtoc" title="Show/hide contents"></label>
+      </span>
+    </div>
+  </header>
+
+
+  <div class="repotoc-tree overlay">
+    <root/>
+
+  </div>
+    <div class="localtoc">
+      <div class="tocwrapper">
+        <div class="header localtoc-header">
+          <a id="scroll-up" href="#top-anchor" title="Back to top"></a>
+        </div>
+        <nav>
+          <ul>
+<li><a class="reference internal" href="#">Repository</a><ul>
+<li><a class="reference internal" href="#getting-started">Getting started</a></li>
+<li><a class="reference internal" href="#targets">Targets</a></li>
+<li><a class="reference internal" href="#repository-structure">Repository structure</a></li>
+<li><a class="reference internal" href="#adding-a-target">Adding a target</a></li>
+<li><a class="reference internal" href="#documentation">Documentation</a></li>
+<li><a class="reference internal" href="#ai-agent-skills">AI agent skills</a></li>
+<li><a class="reference internal" href="#testing">Testing</a></li>
+<li><a class="reference internal" href="#license">License</a></li>
+</ul>
+</li>
+</ul>
+
+        </nav>
+      </div>
+    </div>
+
+  
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+    <a id="no-logo" href="index.html">
+      datax-manifests
+    </a><input id="input-switch-toc" type="checkbox">
+<label id="show-repotoc" for="input-switch-toc">
+All content
+</label>
+<label id="show-toc" for="input-switch-toc">
+Content on this topic
+</label>
+<div class="repotoc-tree">
+  <root/>
+
+</div>
+<div class="toc-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Tutorials</span>
+</p>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/fmcomms2-zed-boot-bin.html">FMCOMMS2 + BOOT.BIN</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/jupiter-sdr-from-source.html">Jupiter from source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/switching-releases.html">Switching releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/kernel-for-pyadi-dt.html">Kernel for pyadi-dt</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Targets</span>
+</p>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="targets/hdl.html">hdl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="targets/hdl-boot.html">hdl-boot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="targets/u-boot-xlnx.html">u-boot-xlnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="targets/arm-trusted-firmware.html">arm-trusted-firmware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="targets/adi-linux.html">adi-linux</a></li>
+</ul>
+
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Repository</a></li>
+</ul>
+
+
+</div>
+        </div>
+      </div>
+
+  <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper" id="top-anchor">
+          <div class="body-header">
+  <nav class="breadcrumb empty"><ol></ol></nav>
+</div>
+          <div class="body" role="main">
+            
+  <section id="repository">
+<h1>Repository<a class="headerlink" href="#repository" title="Link to this heading"></a></h1>
+<p><a class="icon link reference external" href="https://github.com/analogdevicesinc/cim" target="_blank">cim</a> manifests for Analog Devices
+HDL and Linux kernel workspaces. Each target under <code class="docutils literal notranslate"><span class="pre">targets/</span></code> describes the
+repositories, host dependencies and build recipes cim uses to set up a
+ready-to-build workspace; the targets work with upstream cim — no fork
+required.</p>
+<p>Documentation: https://tfcollins.github.io/datax-manifests/ — introduction,
+tutorials (FMCOMMS2 + BOOT.BIN, Jupiter from source, switching releases,
+kernel for pyadi-dt) and the target references, built from these READMEs
+with Sphinx + ADI’s cosmic theme.</p>
+<section id="getting-started">
+<h2>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h2>
+<p>Install cim following the
+<a class="icon link reference external" href="https://github.com/analogdevicesinc/cim/blob/main/README.md" target="_blank">cim README</a>
+(<code class="docutils literal notranslate"><span class="pre">cargo</span> <span class="pre">install</span> <span class="pre">--git</span> <span class="pre">https://github.com/analogdevicesinc/cim</span> <span class="pre">dsdk-cli</span></code>).</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 1. List the targets in this repository</span>
+cim<span class="w"> </span>list-targets<span class="w"> </span>--source<span class="w"> </span>https://github.com/tfcollins/datax-manifests.git
+
+<span class="c1"># 2. Inspect one</span>
+cim<span class="w"> </span>list-targets<span class="w"> </span>--source<span class="w"> </span>https://github.com/tfcollins/datax-manifests.git<span class="w"> </span>-t<span class="w"> </span>hdl
+
+<span class="c1"># 3. Initialize a workspace (add --install to also install host dependencies)</span>
+cim<span class="w"> </span>init<span class="w"> </span>--source<span class="w"> </span>https://github.com/tfcollins/datax-manifests.git<span class="w"> </span>-t<span class="w"> </span>hdl<span class="w"> </span>--workspace<span class="w"> </span>~/cim-hdl
+<span class="nb">cd</span><span class="w"> </span>~/cim-hdl<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>cim<span class="w"> </span>makefile
+</pre></div>
+</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">--source</span> <span class="pre">/path/to/datax-manifests</span></code> for a local checkout, or
+<code class="docutils literal notranslate"><span class="pre">--version</span> <span class="pre">&lt;commit&gt;</span></code> to pin a reviewed revision of this repository.</p>
+</section>
+<section id="targets">
+<h2>Targets<a class="headerlink" href="#targets" title="Link to this heading"></a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Target</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="targets/hdl.html"><span class="doc">hdl</span></a></p></td>
+<td><p>ADI HDL reference designs for Vivado / Quartus / Radiant. <code class="docutils literal notranslate"><span class="pre">HDL_RELEASE</span></code> selects any <code class="docutils literal notranslate"><span class="pre">analogdevicesinc/hdl</span></code> branch, tag or commit (default <code class="docutils literal notranslate"><span class="pre">hdl_2026_r1</span></code>) and the matching Vivado; guided wizard and project/board matrix inspection via <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">guide</span></code>, <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">list-combos</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="targets/hdl-boot.html"><span class="doc">hdl-boot</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">extends:</span> <span class="pre">hdl</span></code> — same workspace plus <code class="docutils literal notranslate"><span class="pre">u-boot-xlnx</span></code> and <code class="docutils literal notranslate"><span class="pre">arm-trusted-firmware</span></code> clones; <code class="docutils literal notranslate"><span class="pre">sdk-build</span></code> builds u-boot.elf and bl31.elf from source for the selected design before the HDL, so BOOT.BIN uses no prebuilt downloads.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="targets/u-boot-xlnx.html"><span class="doc">u-boot-xlnx</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">u-boot.elf</span></code> from <code class="docutils literal notranslate"><span class="pre">analogdevicesinc/u-boot-xlnx</span></code> for ADI / AMD Zynq boards (<code class="docutils literal notranslate"><span class="pre">UBOOT_BOARD</span></code> presets: zed, zcu102, jupiter_sdr, adrv2crr_fmc, pluto, …). Builds on any x86 host.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="targets/arm-trusted-firmware.html"><span class="doc">arm-trusted-firmware</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bl31.elf</span></code> from <code class="docutils literal notranslate"><span class="pre">Xilinx/arm-trusted-firmware</span></code> for ZynqMP / Versal, tag matched to the Vivado release.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="targets/adi-linux.html"><span class="doc">adi-linux</span></a></p></td>
+<td><p>Kernel-only <code class="docutils literal notranslate"><span class="pre">analogdevicesinc/linux</span></code> builds for Zynq / ZynqMP from checksum-pinned source and toolchains. <code class="docutils literal notranslate"><span class="pre">KERNEL_RELEASE</span></code> (<code class="docutils literal notranslate"><span class="pre">2023_R2</span></code>, <code class="docutils literal notranslate"><span class="pre">2026_R1</span></code>) and <code class="docutils literal notranslate"><span class="pre">KERNEL_PLATFORM</span></code> select at make time; publishes an <code class="docutils literal notranslate"><span class="pre">artifacts.json</span></code> contract for pyadi-dt.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="repository-structure">
+<h2>Repository structure<a class="headerlink" href="#repository-structure" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>.
+├── shared/templates/     # Starter templates for new targets
+├── targets/
+│   └── &lt;name&gt;/
+│       ├── sdk.yml                # Manifest (gits, variables, copy_files, build/clean)
+│       ├── os-dependencies.yml    # Host OS packages
+│       ├── README.md              # Target documentation
+│       └── ...                    # Helper scripts / make includes copied into the workspace
+└── tests/                # Offline contract tests for the helper scripts
+</pre></div>
+</div>
+</section>
+<section id="adding-a-target">
+<h2>Adding a target<a class="headerlink" href="#adding-a-target" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mkdir</span> <span class="pre">targets/&lt;name&gt;</span></code> and copy <code class="docutils literal notranslate"><span class="pre">shared/templates/sdk.yml.template</span></code> to
+<code class="docutils literal notranslate"><span class="pre">targets/&lt;name&gt;/sdk.yml</span></code>; add <code class="docutils literal notranslate"><span class="pre">os-dependencies.yml</span></code> (and
+<code class="docutils literal notranslate"><span class="pre">python-dependencies.yml</span></code> if needed) from the templates.</p></li>
+<li><p>Helper scripts and make includes live next to <code class="docutils literal notranslate"><span class="pre">sdk.yml</span></code> and are delivered
+with <code class="docutils literal notranslate"><span class="pre">copy_files:</span></code> / <code class="docutils literal notranslate"><span class="pre">makefile_include:</span></code> — keep the target self-contained
+(no <code class="docutils literal notranslate"><span class="pre">../</span></code> references in <code class="docutils literal notranslate"><span class="pre">sdk.yml</span></code>) so <code class="docutils literal notranslate"><span class="pre">cim</span> <span class="pre">init</span></code> from a git source works.
+To share a script between targets, symlink it (see <code class="docutils literal notranslate"><span class="pre">targets/hdl-boot/</span></code>).</p></li>
+<li><p>To build on another target use <code class="docutils literal notranslate"><span class="pre">extends:</span> <span class="pre">&lt;target&gt;</span></code> plus <code class="docutils literal notranslate"><span class="pre">overlay:</span></code> (see
+<code class="docutils literal notranslate"><span class="pre">targets/hdl-boot/sdk.yml</span></code>); cim merges both into one workspace. Use an
+absolute <code class="docutils literal notranslate"><span class="pre">--source</span></code> path when initializing locally — with <code class="docutils literal notranslate"><span class="pre">--source</span> <span class="pre">.</span></code>
+upstream cim ≤ 1.2.4 skips the base target’s local <code class="docutils literal notranslate"><span class="pre">copy_files</span></code>
+(<a class="icon link reference external" href="https://github.com/analogdevicesinc/cim/pull/89" target="_blank">cim#89</a>).</p></li>
+<li><p>Document it in <code class="docutils literal notranslate"><span class="pre">targets/&lt;name&gt;/README.md</span></code> and add a row above.</p></li>
+<li><p>Add offline tests under <code class="docutils literal notranslate"><span class="pre">tests/</span></code> where the target carries scripts.</p></li>
+</ol>
+</section>
+<section id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>doc/requirements.txt
+make<span class="w"> </span>-C<span class="w"> </span>doc<span class="w"> </span>html<span class="w"> </span><span class="nv">SPHINXOPTS</span><span class="o">=</span><span class="s2">"-W"</span>
+xdg-open<span class="w"> </span>doc/build/html/index.html
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">doc/source/targets/*.md</span></code> are one-line <code class="docutils literal notranslate"><span class="pre">{include}</span></code>s of the target READMEs
+and <code class="docutils literal notranslate"><span class="pre">doc/source/repository.md</span></code> includes this file, so there is nothing to
+keep in sync; <code class="docutils literal notranslate"><span class="pre">doc/source/ext/readme_links.py</span></code> rewrites the READMEs’
+GitHub-relative links to the corresponding pages. Theme and tooling follow
+<a class="icon link reference external" href="https://github.com/analogdevicesinc/pyadi-iio" target="_blank">pyadi-iio</a> (<code class="docutils literal notranslate"><span class="pre">adi-doctools</span></code>
+cosmic theme, <code class="docutils literal notranslate"><span class="pre">myst-parser</span></code>).</p>
+</section>
+<section id="ai-agent-skills">
+<h2>AI agent skills<a class="headerlink" href="#ai-agent-skills" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">.claude/skills/</span></code> carries two Claude Code project skills, auto-loaded for
+sessions in this repository (Codex/Gemini users can point their runtime at
+the same files):</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Skill</p></th>
+<th class="head"><p>Use when</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">building-cim-targets</span></code></p></td>
+<td><p>building, initializing or debugging a workspace for any target — fast path per target plus the pitfalls (absolute <code class="docutils literal notranslate"><span class="pre">--source</span></code>, <code class="docutils literal notranslate"><span class="pre">--install</span></code>, LFS, Vivado per release, carrier-less projects, where BOOT.BIN lands, what Error 127 means)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">adding-cim-target</span></code></p></td>
+<td><p>creating or extending a target — file shape, <code class="docutils literal notranslate"><span class="pre">extends:</span></code>/<code class="docutils literal notranslate"><span class="pre">overlay:</span></code> rules, what a change must ship with (tests, README → docs page, CI wiring), mistakes already made</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="testing">
+<h2>Testing<a class="headerlink" href="#testing" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>discover<span class="w"> </span>-s<span class="w"> </span>tests<span class="w"> </span>-v
+</pre></div>
+</div>
+<p>Tests that need a <code class="docutils literal notranslate"><span class="pre">cim</span></code> binary look at <code class="docutils literal notranslate"><span class="pre">CIM_BIN</span></code> or <code class="docutils literal notranslate"><span class="pre">PATH</span></code> and skip
+otherwise; set <code class="docutils literal notranslate"><span class="pre">CIM_NETWORK=1</span></code> to also run the cases that clone real
+repositories.</p>
+<p>CI (<code class="docutils literal notranslate"><span class="pre">.github/workflows/ci.yml</span></code>) runs five jobs against the pinned upstream
+cim release:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Job</p></th>
+<th class="head"><p>Runner</p></th>
+<th class="head"><p>What</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">lint</span></code></p></td>
+<td><p>GitHub-hosted</p></td>
+<td><p>shellcheck, <code class="docutils literal notranslate"><span class="pre">py_compile</span></code>, YAML parse, actionlint</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">docs</span></code></p></td>
+<td><p>GitHub-hosted</p></td>
+<td><p>Sphinx build with <code class="docutils literal notranslate"><span class="pre">-W</span></code>; publishes <code class="docutils literal notranslate"><span class="pre">doc/build/html</span></code> to GitHub Pages on <code class="docutils literal notranslate"><span class="pre">main</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">test</span></code></p></td>
+<td><p>GitHub-hosted</p></td>
+<td><p>adi-linux tests, <code class="docutils literal notranslate"><span class="pre">cim</span> <span class="pre">init</span></code> smoke of <code class="docutils literal notranslate"><span class="pre">adi-linux</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">boot-components</span></code></p></td>
+<td><p>GitHub-hosted (matrix)</p></td>
+<td><p>real <code class="docutils literal notranslate"><span class="pre">u-boot.elf</span></code> builds for <code class="docutils literal notranslate"><span class="pre">jupiter_sdr</span></code> / <code class="docutils literal notranslate"><span class="pre">zed</span></code> and <code class="docutils literal notranslate"><span class="pre">bl31.elf</span></code> for ZynqMP via the standalone targets; artifacts uploaded</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hdl</span></code></p></td>
+<td><p>self-hosted <code class="docutils literal notranslate"><span class="pre">hdl-dev-2</span></code> (labels <code class="docutils literal notranslate"><span class="pre">hdl-dev-2</span></code>, <code class="docutils literal notranslate"><span class="pre">vivado</span></code>)</p></td>
+<td><p>hdl tests incl. real <code class="docutils literal notranslate"><span class="pre">cim</span> <span class="pre">init</span></code>, <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">check-tools</span></code> for both releases against the installed Vivado 2023.2 / 2025.1, dry-run builds, <code class="docutils literal notranslate"><span class="pre">hdl-boot</span></code> smoke-init</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>A real Vivado build runs only on manual dispatch: <strong>Actions → CI → Run
+workflow</strong> with <code class="docutils literal notranslate"><span class="pre">build</span></code> checked (inputs <code class="docutils literal notranslate"><span class="pre">release</span></code> / <code class="docutils literal notranslate"><span class="pre">project</span></code> / <code class="docutils literal notranslate"><span class="pre">board</span></code>,
+default <code class="docutils literal notranslate"><span class="pre">hdl_2023_r2</span></code> / <code class="docutils literal notranslate"><span class="pre">fmcomms2</span></code> / <code class="docutils literal notranslate"><span class="pre">zed</span></code>).</p>
+</section>
+<section id="license">
+<h2>License<a class="headerlink" href="#license" title="Link to this heading"></a></h2>
+<p>Apache 2.0 — see <a class="icon link reference external" href="https://github.com/tfcollins/datax-manifests/blob/main/LICENSE" target="_blank">LICENSE</a>.</p>
+</section>
+</section>
+
+
+          </div>
+              <div class="related">
+                &nbsp;
+    <a href="targets/adi-linux.html" title="Previous document (Alt+Shift+LeftArrow)" class="prev">adi-linux</a>
+    <div></div>
+              </div>
+          
+        </div>
+      </div>
+  </div>
+
+  <label id="cancel-area-show-toc" for="input-show-toc"></label>
+  <label id="cancel-area-show-localtoc" for="input-show-localtoc"></label>
+    <footer>
+      &#169;2026, Analog Devices, Inc
+      
+      |
+      Made with <a href="https://www.sphinx-doc.org/">Sphinx</a>
+      &amp; <a href="https://github.com/analogdevicesinc/doctools">Doctools</a>
+      
+    </footer>
+  </body>
+</html>

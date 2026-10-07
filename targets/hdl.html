@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta content="HDL reference designs" name="description" />
+
+    <title>hdl &#8212; datax-manifests main documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8e8a900e" />
+    <link rel="stylesheet" type="text/css" href="../_static/app.min.css?v=b1d7a81a" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/diagrams.css?v=f154b667" />
+    <script async="async" src="../_static/app.umd.js?v=daa30c51"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="hdl-boot" href="hdl-boot.html" />
+    <link rel="prev" title="Kernel images for pyadi-dt hardware tests" href="../tutorials/kernel-for-pyadi-dt.html" />
+   
+  
+  
+  
+  <meta name="repository" content="datax-manifests">
+  <meta name="version" content="main">
+  
+    <meta name="page_source_suffix" content=".md">
+  
+  
+  
+
+
+<style>
+  body {
+    
+  }
+
+  body.dark {
+    
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body:not(.light) {
+      
+    }
+  }
+</style>
+  </head>
+  
+    <body>
+  
+  <input type="checkbox" id="input-show-toc">
+  <input type="checkbox" id="input-show-localtoc">
+  <input type="checkbox" id="input-show-repotoc">
+
+  
+  <div class="search-area">
+    <form action="" method="get">
+      <input type="text" name="q" aria-labelledby="search-documentation" value="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" role="search" placeholder="Search"/>
+      <button class="icon"></button>
+    </form>
+  </div>
+  
+
+  <header>
+    <div id="left">
+      <label id="show-sidebar" class="icon" for="input-show-toc" title="Show/hide index"></label>
+    </div>
+    <div id="right">
+      <span>
+        <a id="logo-org" href="https://developer.analog.com/" aria-label="Analog Devices Inc. landing page"></a>
+        <div class="vertical-divider"></div>
+        
+        <label id="show-repotoc" for="input-show-repotoc" title="Show/hide docs">Documentation</label>
+        
+        <a id="logo" href="../index.html">
+          <div>datax-manifests</div>
+        </a>
+      </span>
+      <span class="reverse">
+        <label id="show-localtoc" class="icon" for="input-show-localtoc" title="Show/hide contents"></label>
+      </span>
+    </div>
+  </header>
+
+
+  <div class="repotoc-tree overlay">
+    <root/>
+
+  </div>
+    <div class="localtoc">
+      <div class="tocwrapper">
+        <div class="header localtoc-header">
+          <a id="scroll-up" href="#top-anchor" title="Back to top"></a>
+        </div>
+        <nav>
+          <ul>
+<li><a class="reference internal" href="#">hdl</a><ul>
+<li><a class="reference internal" href="#quick-start">Quick start</a></li>
+<li><a class="reference internal" href="#selecting-a-release">Selecting a release</a></li>
+<li><a class="reference internal" href="#variables">Variables</a></li>
+<li><a class="reference internal" href="#eda-tool-matrix">EDA tool matrix</a><ul>
+<li><a class="reference internal" href="#projects-without-carrier-boards">Projects without carrier boards</a></li>
+<li><a class="reference internal" href="#boot-bin">BOOT.BIN</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#guided-wizard">Guided wizard</a></li>
+<li><a class="reference internal" href="#script-reference">Script reference</a></li>
+<li><a class="reference internal" href="#non-interactive-examples">Non-interactive examples</a></li>
+<li><a class="reference internal" href="#verification">Verification</a></li>
+</ul>
+</li>
+</ul>
+
+        </nav>
+      </div>
+    </div>
+
+  
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+    <a id="no-logo" href="../index.html">
+      datax-manifests
+    </a><input id="input-switch-toc" type="checkbox">
+<label id="show-repotoc" for="input-switch-toc">
+All content
+</label>
+<label id="show-toc" for="input-switch-toc">
+Content on this topic
+</label>
+<div class="repotoc-tree">
+  <root/>
+
+</div>
+<div class="toc-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Tutorials</span>
+</p>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/fmcomms2-zed-boot-bin.html">FMCOMMS2 + BOOT.BIN</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/jupiter-sdr-from-source.html">Jupiter from source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/switching-releases.html">Switching releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/kernel-for-pyadi-dt.html">Kernel for pyadi-dt</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Targets</span>
+</p>
+
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">hdl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hdl-boot.html">hdl-boot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="u-boot-xlnx.html">u-boot-xlnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arm-trusted-firmware.html">arm-trusted-firmware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="adi-linux.html">adi-linux</a></li>
+</ul>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../repository.html">Repository</a></li>
+</ul>
+
+
+</div>
+        </div>
+      </div>
+
+  <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper" id="top-anchor">
+          <div class="body-header">
+  <nav class="breadcrumb empty"><ol></ol></nav>
+</div>
+          <div class="body" role="main">
+            
+  <section id="hdl">
+<h1>hdl<a class="headerlink" href="#hdl" title="Link to this heading"></a></h1>
+<p><em>HDL reference designs</em></p>
+<p>Builds <a class="icon link reference external" href="https://github.com/analogdevicesinc/hdl" target="_blank">analogdevicesinc/hdl</a>
+reference designs with vendor EDA tools (AMD/Xilinx Vivado, Intel Quartus
+Prime, Lattice Radiant). One target covers every HDL release: the release is a
+make variable, and the matching Vivado version is selected automatically.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>File</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sdk.yml</span></code></p></td>
+<td><p>Manifest: variables, <code class="docutils literal notranslate"><span class="pre">hdl</span></code> git, <code class="docutils literal notranslate"><span class="pre">sdk-build</span></code> / <code class="docutils literal notranslate"><span class="pre">sdk-clean</span></code> recipes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">os-dependencies.yml</span></code></p></td>
+<td><p>Host packages</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">build-hdl.sh</span></code></p></td>
+<td><p>Release switching, tool detection, matrix inspection, guided wizard; copied to <code class="docutils literal notranslate"><span class="pre">scripts/build-hdl.sh</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">hdl.mk</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">guide</span></code>, <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">list-combos</span></code>, … helper targets</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">build_boot_bin.sh</span></code> is fetched from
+<a class="icon link reference external" href="https://github.com/analogdevicesinc/wiki-scripts" target="_blank">wiki-scripts</a> into
+<code class="docutils literal notranslate"><span class="pre">scripts/</span></code> for BOOT.BIN generation.</p>
+<section id="quick-start">
+<h2>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cim<span class="w"> </span>init<span class="w"> </span>--target<span class="w"> </span>hdl<span class="w"> </span>--source<span class="w"> </span>https://github.com/tfcollins/datax-manifests.git<span class="w"> </span>--workspace<span class="w"> </span>~/cim-hdl
+<span class="nb">cd</span><span class="w"> </span>~/cim-hdl
+cim<span class="w"> </span>makefile
+
+make<span class="w"> </span>check-tools<span class="w">                      </span><span class="c1"># which EDA tools are installed, which Vivado the release wants</span>
+make<span class="w"> </span>list-combos<span class="w">                      </span><span class="c1"># every project / carrier board / tool for the selected release</span>
+make<span class="w"> </span>list-boards<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>ad9081_fmca_ebz
+make<span class="w"> </span>guide<span class="w">                            </span><span class="c1"># interactive wizard</span>
+make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>fmcomms2<span class="w"> </span><span class="nv">HDL_BOARD</span><span class="o">=</span>zed<span class="w"> </span><span class="nv">BUILD_BOOT_BIN</span><span class="o">=</span><span class="nb">true</span>
+</pre></div>
+</div>
+</section>
+<section id="selecting-a-release">
+<h2>Selecting a release<a class="headerlink" href="#selecting-a-release" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">HDL_RELEASE</span></code> is any branch, tag or commit of <code class="docutils literal notranslate"><span class="pre">analogdevicesinc/hdl</span></code>
+(default <code class="docutils literal notranslate"><span class="pre">hdl_2026_r1</span></code>). <code class="docutils literal notranslate"><span class="pre">cim</span> <span class="pre">init</span></code> clones the default; <code class="docutils literal notranslate"><span class="pre">build-hdl.sh</span></code> then
+switches the workspace <code class="docutils literal notranslate"><span class="pre">hdl/</span></code> checkout to the requested release before every
+inspection or build, fetching it from origin (or from GitHub when the origin
+is a mirror without it).</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>list-combos<span class="w"> </span><span class="nv">HDL_RELEASE</span><span class="o">=</span>hdl_2023_r2
+make<span class="w"> </span>sdk-build<span class="w">  </span><span class="nv">HDL_RELEASE</span><span class="o">=</span>hdl_2023_r2<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>fmcomms2<span class="w"> </span><span class="nv">HDL_BOARD</span><span class="o">=</span>zed
+</pre></div>
+</div>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">HDL_RELEASE</span></code></p></th>
+<th class="head"><p>Vivado selected by <code class="docutils literal notranslate"><span class="pre">VIVADO=auto</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hdl_2023_r2</span></code></p></td>
+<td><p>2023.2</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">hdl_2026_r1</span></code> (default)</p></td>
+<td><p>2025.1</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">main</span></code></p></td>
+<td><p>2025.1</p></td>
+</tr>
+<tr class="row-odd"><td><p>anything else</p></td>
+<td><p>none — pass <code class="docutils literal notranslate"><span class="pre">VIVADO=/path/to/Vivado</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">VIVADO=auto</span></code> probes <code class="docutils literal notranslate"><span class="pre">/opt/Xilinx/&lt;ver&gt;/Vivado</span></code>, <code class="docutils literal notranslate"><span class="pre">/opt/Xilinx/Vivado/&lt;ver&gt;</span></code>
+and the same under <code class="docutils literal notranslate"><span class="pre">/tools</span></code>; <code class="docutils literal notranslate"><span class="pre">$XILINX_VIVADO</span></code> is honoured if set. Quartus and
+Radiant paths come from <code class="docutils literal notranslate"><span class="pre">QUARTUS</span></code> / <code class="docutils literal notranslate"><span class="pre">LATTICE_RADIANT</span></code> (or
+<code class="docutils literal notranslate"><span class="pre">$QUARTUS_ROOTDIR</span></code>) and do not depend on the release.</p>
+<p><code class="docutils literal notranslate"><span class="pre">analogdevicesinc/hdl</span></code> keeps documentation images in Git LFS and some objects
+are missing upstream; builds never need them. <code class="docutils literal notranslate"><span class="pre">build-hdl.sh</span></code> sets
+<code class="docutils literal notranslate"><span class="pre">GIT_LFS_SKIP_SMUDGE=1</span></code> for its own git operations, and if <code class="docutils literal notranslate"><span class="pre">git-lfs</span></code> is
+installed on your host run <code class="docutils literal notranslate"><span class="pre">cim</span> <span class="pre">init</span></code> with <code class="docutils literal notranslate"><span class="pre">GIT_LFS_SKIP_SMUDGE=1</span></code> too.</p>
+<p>Switching release refuses to touch a dirty <code class="docutils literal notranslate"><span class="pre">hdl/</span></code> worktree (tracked
+modifications; untracked build output is fine). A local branch of the same
+name is used as-is, so your own commits are never reset — run
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">-C</span> <span class="pre">hdl</span> <span class="pre">pull</span></code> to move a release forward.</p>
+</section>
+<section id="variables">
+<h2>Variables<a class="headerlink" href="#variables" title="Link to this heading"></a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">HDL_RELEASE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hdl_2026_r1</span></code></p></td>
+<td><p>Release (branch/tag/sha) of <code class="docutils literal notranslate"><span class="pre">analogdevicesinc/hdl</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">VIVADO</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">auto</span></code></p></td>
+<td><p>Vivado install dir, or <code class="docutils literal notranslate"><span class="pre">auto</span></code> to derive from the release</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">QUARTUS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/opt/intelFPGA_pro/23.4/quartus</span></code></p></td>
+<td><p>Quartus install dir</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LATTICE_RADIANT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/usr/local/radiant</span></code></p></td>
+<td><p>Radiant install dir</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">HDL_PROJECT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fmcomms2</span></code></p></td>
+<td><p>Project under <code class="docutils literal notranslate"><span class="pre">hdl/projects/</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">HDL_BOARD</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">zcu102</span></code></p></td>
+<td><p>Carrier board under the project</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MAKE_JOBS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-j$(nproc)</span></code></p></td>
+<td><p>Parallel jobs passed to the project make</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DIR_NAME</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">build</span></code></p></td>
+<td><p>Build output directory name inside the project</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BUILD_BOOT_BIN</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>Generate BOOT.BIN after a Zynq / ZynqMP / Versal build</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BOOT_BIN_UBOOT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">download</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">u-boot.elf</span></code> path, or <code class="docutils literal notranslate"><span class="pre">download</span></code> ADI’s prebuilt</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BOOT_BIN_ATF</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">download</span></code></p></td>
+<td><p>ZynqMP/Versal: <code class="docutils literal notranslate"><span class="pre">bl31.elf</span></code> path, ATF source dir, or <code class="docutils literal notranslate"><span class="pre">download</span></code> (build it)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="eda-tool-matrix">
+<h2>EDA tool matrix<a class="headerlink" href="#eda-tool-matrix" title="Link to this heading"></a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Vendor tool</p></th>
+<th class="head"><p>Carrier boards (examples)</p></th>
+<th class="head"><p>Default environment</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>AMD/Xilinx Vivado</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">zed</span></code>, <code class="docutils literal notranslate"><span class="pre">zc702</span></code>, <code class="docutils literal notranslate"><span class="pre">zc706</span></code>, <code class="docutils literal notranslate"><span class="pre">zcu102</span></code>, <code class="docutils literal notranslate"><span class="pre">coraz7s</span></code>, <code class="docutils literal notranslate"><span class="pre">k26</span></code>, <code class="docutils literal notranslate"><span class="pre">kv260</span></code>, <code class="docutils literal notranslate"><span class="pre">vck190</span></code>, <code class="docutils literal notranslate"><span class="pre">vmk180</span></code>, <code class="docutils literal notranslate"><span class="pre">vpk180</span></code>, <code class="docutils literal notranslate"><span class="pre">kcu105</span></code>, <code class="docutils literal notranslate"><span class="pre">vcu118</span></code>, <code class="docutils literal notranslate"><span class="pre">ac701</span></code>, …</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">$VIVADO/settings64.sh</span></code> (auto per release)</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Intel Quartus Prime</strong> (Pro 23.4 / Standard)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">de10nano</span></code>, <code class="docutils literal notranslate"><span class="pre">c5soc</span></code>, <code class="docutils literal notranslate"><span class="pre">a10soc</span></code>, <code class="docutils literal notranslate"><span class="pre">a10gx</span></code>, <code class="docutils literal notranslate"><span class="pre">s10soc</span></code>, <code class="docutils literal notranslate"><span class="pre">fm87</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">$QUARTUS/bin</span></code> on PATH, or <code class="docutils literal notranslate"><span class="pre">$QUARTUS_ROOTDIR</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Lattice Radiant / Propel</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">lfcpnx</span></code> (Certus-NX)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">$LATTICE_RADIANT/bin/lin64</span></code> on PATH</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The tool for a project/board is detected from its Makefile
+(<code class="docutils literal notranslate"><span class="pre">project-xilinx.mk</span></code> / <code class="docutils literal notranslate"><span class="pre">project-intel.mk</span></code> / <code class="docutils literal notranslate"><span class="pre">project-lattice.mk</span></code>).</p>
+<section id="projects-without-carrier-boards">
+<h3>Projects without carrier boards<a class="headerlink" href="#projects-without-carrier-boards" title="Link to this heading"></a></h3>
+<p>SOM-style designs (<code class="docutils literal notranslate"><span class="pre">jupiter_sdr</span></code>, <code class="docutils literal notranslate"><span class="pre">pluto</span></code>, <code class="docutils literal notranslate"><span class="pre">m2k</span></code>, <code class="docutils literal notranslate"><span class="pre">sidekiqz2</span></code>, <code class="docutils literal notranslate"><span class="pre">usrpe31x</span></code>, …)
+have the vendor Makefile directly in <code class="docutils literal notranslate"><span class="pre">projects/&lt;name&gt;/</span></code> and no carrier
+subdirectories. They are built with just the project name — <code class="docutils literal notranslate"><span class="pre">HDL_BOARD</span></code> is
+ignored (with a warning, since <code class="docutils literal notranslate"><span class="pre">sdk.yml</span></code> always passes its default):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>jupiter_sdr
+make<span class="w"> </span>list-boards<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>jupiter_sdr<span class="w">     </span><span class="c1"># "has no carrier boards; built directly"</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">list-combos</span></code> shows these with <code class="docutils literal notranslate"><span class="pre">-</span></code> in the carrier board column. BOOT.BIN
+generation uses the Makefile’s <code class="docutils literal notranslate"><span class="pre">PROJECT_NAME</span></code> for the <code class="docutils literal notranslate"><span class="pre">.sdk</span></code> path, so it works
+for both layouts.</p>
+</section>
+<section id="boot-bin">
+<h3>BOOT.BIN<a class="headerlink" href="#boot-bin" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">BUILD_BOOT_BIN=true</span></code> (or the wizard’s prompt) is offered for any design whose
+device has a boot ROM. The device is read from the project’s
+<code class="docutils literal notranslate"><span class="pre">system_project.tcl</span></code> (carrier-less designs such as <code class="docutils literal notranslate"><span class="pre">jupiter_sdr</span></code>, <code class="docutils literal notranslate"><span class="pre">pluto</span></code>,
+<code class="docutils literal notranslate"><span class="pre">m2k</span></code>) or from the board table in <code class="docutils literal notranslate"><span class="pre">projects/scripts/adi_project_xilinx.tcl</span></code>
+(carrier designs), and selects the matching helper from
+<a class="icon link reference external" href="https://github.com/analogdevicesinc/wiki-scripts" target="_blank">wiki-scripts</a> — all three
+are fetched into <code class="docutils literal notranslate"><span class="pre">scripts/</span></code> by <code class="docutils literal notranslate"><span class="pre">cim</span> <span class="pre">init</span></code>:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Device</p></th>
+<th class="head"><p>Helper</p></th>
+<th class="head"><p>Inputs</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Zynq-7000 (<code class="docutils literal notranslate"><span class="pre">xc7z*</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">build_boot_bin.sh</span></code></p></td>
+<td><p>XSA, <code class="docutils literal notranslate"><span class="pre">BOOT_BIN_UBOOT</span></code> → FSBL + bit + u-boot</p></td>
+</tr>
+<tr class="row-odd"><td><p>Zynq UltraScale+ (<code class="docutils literal notranslate"><span class="pre">xczu*</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">build_zynqmp_boot_bin.sh</span></code></p></td>
+<td><p>XSA, <code class="docutils literal notranslate"><span class="pre">BOOT_BIN_UBOOT</span></code>, <code class="docutils literal notranslate"><span class="pre">BOOT_BIN_ATF</span></code> → FSBL + PMUFW + bit + bl31 + u-boot</p></td>
+</tr>
+<tr class="row-even"><td><p>Versal (<code class="docutils literal notranslate"><span class="pre">xcv*</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">build_versal_boot_bin.sh</span></code></p></td>
+<td><p>XSA, <code class="docutils literal notranslate"><span class="pre">BOOT_BIN_UBOOT</span></code>, <code class="docutils literal notranslate"><span class="pre">BOOT_BIN_ATF</span></code> (+ DTB; see the script)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Kintex / Virtex / Artix, Intel and Lattice designs are not eligible;
+requesting BOOT.BIN for them prints a warning and skips it.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">BOOT_BIN_UBOOT=download</span></code> (default) fetches ADI’s prebuilt <code class="docutils literal notranslate"><span class="pre">u-boot.elf</span></code> for
+the carrier detected inside the XSA — the ZynqMP list covers <code class="docutils literal notranslate"><span class="pre">zcu102</span></code>,
+<code class="docutils literal notranslate"><span class="pre">adrv2crr_*</span></code>, <code class="docutils literal notranslate"><span class="pre">jupiter_sdr</span></code>, <code class="docutils literal notranslate"><span class="pre">k26</span></code>; the Zynq-7000 list <code class="docutils literal notranslate"><span class="pre">zed</span></code>, <code class="docutils literal notranslate"><span class="pre">zc702</span></code>,
+<code class="docutils literal notranslate"><span class="pre">zc706</span></code>, <code class="docutils literal notranslate"><span class="pre">coraz7s</span></code>, <code class="docutils literal notranslate"><span class="pre">ccbob_*</span></code>, <code class="docutils literal notranslate"><span class="pre">ccfmc_*</span></code>, <code class="docutils literal notranslate"><span class="pre">usrpe31x</span></code>. Other carriers need an
+explicit <code class="docutils literal notranslate"><span class="pre">BOOT_BIN_UBOOT=/path/to/u-boot.elf</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BOOT_BIN_ATF=download</span></code> (default, ZynqMP/Versal) clones and builds
+arm-trusted-firmware, which needs <code class="docutils literal notranslate"><span class="pre">aarch64-linux-gnu-gcc</span></code>
+(<code class="docutils literal notranslate"><span class="pre">gcc-aarch64-linux-gnu</span></code>, included in <code class="docutils literal notranslate"><span class="pre">os-dependencies.yml</span></code>). Pass a
+prebuilt <code class="docutils literal notranslate"><span class="pre">BOOT_BIN_ATF=/path/to/bl31.elf</span></code> or an ATF source directory to skip
+that.</p></li>
+<li><p>The helpers need <code class="docutils literal notranslate"><span class="pre">xsct</span></code>, <code class="docutils literal notranslate"><span class="pre">bootgen</span></code> and <code class="docutils literal notranslate"><span class="pre">vitis</span></code> on PATH — i.e. Vitis, not
+just Vivado, installed alongside the selected version.</p></li>
+</ul>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>jupiter_sdr<span class="w"> </span><span class="nv">BUILD_BOOT_BIN</span><span class="o">=</span><span class="nb">true</span>
+make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>fmcomms2<span class="w"> </span><span class="nv">HDL_BOARD</span><span class="o">=</span>zcu102<span class="w"> </span><span class="nv">BUILD_BOOT_BIN</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="nv">BOOT_BIN_ATF</span><span class="o">=</span>~/bl31.elf
+</pre></div>
+</div>
+<p>Output lands in <code class="docutils literal notranslate"><span class="pre">hdl/projects/&lt;...&gt;/output_boot_bin/BOOT.BIN</span></code>.</p>
+<p>To build u-boot and BL31 from source instead of downloading ADI’s prebuilt
+blobs, use the <a class="reference internal" href="hdl-boot.html"><span class="doc">hdl-boot</span></a> target (same workspace,
+<code class="docutils literal notranslate"><span class="pre">extends:</span> <span class="pre">hdl</span></code>), or build them separately with
+<a class="reference internal" href="u-boot-xlnx.html"><span class="doc">u-boot-xlnx</span></a> /
+<a class="reference internal" href="arm-trusted-firmware.html"><span class="doc">arm-trusted-firmware</span></a> and pass the
+paths via <code class="docutils literal notranslate"><span class="pre">BOOT_BIN_UBOOT=</span></code> / <code class="docutils literal notranslate"><span class="pre">BOOT_BIN_ATF=</span></code>.</p>
+</section>
+</section>
+<section id="guided-wizard">
+<h2>Guided wizard<a class="headerlink" href="#guided-wizard" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">guide</span></code> (or <code class="docutils literal notranslate"><span class="pre">./scripts/build-hdl.sh</span></code>) walks through:</p>
+<ol class="arabic simple" start="0">
+<li><p><strong>HDL release</strong> (defaults to <code class="docutils literal notranslate"><span class="pre">HDL_RELEASE</span></code>)</p></li>
+<li><p><strong>Project</strong> — type a name, <code class="docutils literal notranslate"><span class="pre">list</span></code>/<code class="docutils literal notranslate"><span class="pre">?</span></code> for all, <code class="docutils literal notranslate"><span class="pre">filter</span> <span class="pre">&lt;term&gt;</span></code> to search</p></li>
+<li><p><strong>Carrier board</strong> for that project</p></li>
+<li><p><strong>EDA tool</strong> verification in your environment</p></li>
+<li><p><strong>Parallel jobs</strong>, output directory and <strong>BOOT.BIN</strong> generation</p></li>
+<li><p>Summary with the equivalent <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">…</span> <span class="pre">sdk-build</span></code> command, then confirm</p></li>
+</ol>
+</section>
+<section id="script-reference">
+<h2>Script reference<a class="headerlink" href="#script-reference" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scripts</span><span class="o">/</span><span class="n">build</span><span class="o">-</span><span class="n">hdl</span><span class="o">.</span><span class="n">sh</span> <span class="o">--</span><span class="n">release</span> <span class="o">&lt;</span><span class="n">ref</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">vivado</span> <span class="o">&lt;</span><span class="n">path</span><span class="o">|</span><span class="n">auto</span><span class="o">&gt;</span> \
+    <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">name</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">board</span> <span class="o">&lt;</span><span class="n">name</span><span class="o">&gt;</span> <span class="p">[</span><span class="o">--</span><span class="n">jobs</span> <span class="n">N</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="nb">dir</span><span class="o">-</span><span class="n">name</span> <span class="n">build</span><span class="p">]</span> \
+    <span class="p">[</span><span class="o">--</span><span class="n">boot</span><span class="o">-</span><span class="nb">bin</span> <span class="p">[</span><span class="n">true</span><span class="o">|</span><span class="n">false</span><span class="p">]]</span> <span class="p">[</span><span class="o">--</span><span class="n">boot</span><span class="o">-</span><span class="nb">bin</span><span class="o">-</span><span class="n">uboot</span> <span class="n">download</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">dry</span><span class="o">-</span><span class="n">run</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">clean</span><span class="p">]</span>
+
+<span class="n">scripts</span><span class="o">/</span><span class="n">build</span><span class="o">-</span><span class="n">hdl</span><span class="o">.</span><span class="n">sh</span> <span class="p">[</span><span class="o">--</span><span class="n">release</span> <span class="o">&lt;</span><span class="n">ref</span><span class="o">&gt;</span><span class="p">]</span> <span class="o">--</span><span class="nb">list</span> <span class="o">|</span> <span class="o">--</span><span class="nb">list</span><span class="o">-</span><span class="n">projects</span> <span class="o">|</span> \
+    <span class="o">--</span><span class="nb">list</span><span class="o">-</span><span class="n">boards</span> <span class="o">&lt;</span><span class="n">project</span><span class="o">&gt;</span> <span class="o">|</span> <span class="o">--</span><span class="nb">list</span><span class="o">-</span><span class="n">tools</span> <span class="o">|</span> <span class="o">--</span><span class="n">check</span><span class="o">-</span><span class="n">tools</span>
+<span class="n">scripts</span><span class="o">/</span><span class="n">build</span><span class="o">-</span><span class="n">hdl</span><span class="o">.</span><span class="n">sh</span> <span class="o">--</span><span class="n">interactive</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">--dry-run</span></code> prints the tool environment and make commands without running
+them. <code class="docutils literal notranslate"><span class="pre">--check-tools</span></code> exits non-zero when Vivado cannot be resolved for the
+release. <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">sdk-clean</span></code> runs the project’s <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">clean</span></code> with the same
+release/tool resolution.</p>
+</section>
+<section id="non-interactive-examples">
+<h2>Non-interactive examples<a class="headerlink" href="#non-interactive-examples" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># fmcomms2 on ZedBoard (Vivado) with BOOT.BIN, 2023_R2 release</span>
+make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">HDL_RELEASE</span><span class="o">=</span>hdl_2023_r2<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>fmcomms2<span class="w"> </span><span class="nv">HDL_BOARD</span><span class="o">=</span>zed<span class="w"> </span><span class="nv">BUILD_BOOT_BIN</span><span class="o">=</span><span class="nb">true</span>
+
+<span class="c1"># cn0561 on DE10-Nano (Intel Quartus)</span>
+make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>cn0561<span class="w"> </span><span class="nv">HDL_BOARD</span><span class="o">=</span>de10nano
+
+<span class="c1"># ad738x_fmc on Lattice Certus-NX (Radiant)</span>
+make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>ad738x_fmc<span class="w"> </span><span class="nv">HDL_BOARD</span><span class="o">=</span>lfcpnx
+
+<span class="c1"># explicit Vivado for an unlisted branch</span>
+make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">HDL_RELEASE</span><span class="o">=</span>main<span class="w"> </span><span class="nv">VIVADO</span><span class="o">=</span>/opt/Xilinx/2025.2/Vivado<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>fmcomms2<span class="w"> </span><span class="nv">HDL_BOARD</span><span class="o">=</span>zcu102
+</pre></div>
+</div>
+</section>
+<section id="verification">
+<h2>Verification<a class="headerlink" href="#verification" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">tests/test_hdl_guide.py</span></code> exercises release switching, Vivado resolution,
+dirty-worktree refusal, dry-run and clean against a fake <code class="docutils literal notranslate"><span class="pre">hdl/</span></code> git repo — no
+network, no EDA tools. Set <code class="docutils literal notranslate"><span class="pre">CIM_NETWORK=1</span></code> (and <code class="docutils literal notranslate"><span class="pre">CIM_BIN</span></code> if <code class="docutils literal notranslate"><span class="pre">cim</span></code> is not on
+PATH) to also run a real <code class="docutils literal notranslate"><span class="pre">cim</span> <span class="pre">init</span></code> + generated-Makefile check that clones the
+actual hdl repository.</p>
+</section>
+</section>
+
+
+          </div>
+              <div class="related">
+                &nbsp;
+    <a href="../tutorials/kernel-for-pyadi-dt.html" title="Previous document (Alt+Shift+LeftArrow)" class="prev">Kernel images for pyadi-dt hardware tests</a>
+    <a href="hdl-boot.html" title="Next document (Alt+Shift+RightArrow)" class="next">hdl-boot</a>
+              </div>
+          
+        </div>
+      </div>
+  </div>
+
+  <label id="cancel-area-show-toc" for="input-show-toc"></label>
+  <label id="cancel-area-show-localtoc" for="input-show-localtoc"></label>
+    <footer>
+      &#169;2026, Analog Devices, Inc
+      
+      |
+      Made with <a href="https://www.sphinx-doc.org/">Sphinx</a>
+      &amp; <a href="https://github.com/analogdevicesinc/doctools">Doctools</a>
+      
+    </footer>
+  </body>
+</html>

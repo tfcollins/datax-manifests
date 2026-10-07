@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta content="The adi-linux target builds kernel-only images from checksum-pinned analogdevicesinc/linux source and toolchains and publishes an artifacts.json that pyadi-dt consumes for its hardware CI. No Vivado, no root filesystem — a Linux x86_64 host with the packages from os-dependencies.yml is enough." name="description" />
+
+    <title>Kernel images for pyadi-dt hardware tests &#8212; datax-manifests main documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8e8a900e" />
+    <link rel="stylesheet" type="text/css" href="../_static/app.min.css?v=b1d7a81a" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/diagrams.css?v=f154b667" />
+    <script async="async" src="../_static/app.umd.js?v=daa30c51"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="hdl" href="../targets/hdl.html" />
+    <link rel="prev" title="Switching HDL releases in one workspace" href="switching-releases.html" />
+   
+  
+  
+  
+  <meta name="repository" content="datax-manifests">
+  <meta name="version" content="main">
+  
+    <meta name="page_source_suffix" content=".rst">
+  
+  
+  
+
+
+<style>
+  body {
+    
+  }
+
+  body.dark {
+    
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body:not(.light) {
+      
+    }
+  }
+</style>
+  </head>
+  
+    <body>
+  
+  <input type="checkbox" id="input-show-toc">
+  <input type="checkbox" id="input-show-localtoc">
+  <input type="checkbox" id="input-show-repotoc">
+
+  
+  <div class="search-area">
+    <form action="" method="get">
+      <input type="text" name="q" aria-labelledby="search-documentation" value="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" role="search" placeholder="Search"/>
+      <button class="icon"></button>
+    </form>
+  </div>
+  
+
+  <header>
+    <div id="left">
+      <label id="show-sidebar" class="icon" for="input-show-toc" title="Show/hide index"></label>
+    </div>
+    <div id="right">
+      <span>
+        <a id="logo-org" href="https://developer.analog.com/" aria-label="Analog Devices Inc. landing page"></a>
+        <div class="vertical-divider"></div>
+        
+        <label id="show-repotoc" for="input-show-repotoc" title="Show/hide docs">Documentation</label>
+        
+        <a id="logo" href="../index.html">
+          <div>datax-manifests</div>
+        </a>
+      </span>
+      <span class="reverse">
+        <label id="show-localtoc" class="icon" for="input-show-localtoc" title="Show/hide contents"></label>
+      </span>
+    </div>
+  </header>
+
+
+  <div class="repotoc-tree overlay">
+    <root/>
+
+  </div>
+    <div class="localtoc">
+      <div class="tocwrapper">
+        <div class="header localtoc-header">
+          <a id="scroll-up" href="#top-anchor" title="Back to top"></a>
+        </div>
+        <nav>
+          <ul>
+<li><a class="reference internal" href="#">Kernel images for pyadi-dt hardware tests</a></li>
+</ul>
+
+        </nav>
+      </div>
+    </div>
+
+  
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+    <a id="no-logo" href="../index.html">
+      datax-manifests
+    </a><input id="input-switch-toc" type="checkbox">
+<label id="show-repotoc" for="input-switch-toc">
+All content
+</label>
+<label id="show-toc" for="input-switch-toc">
+Content on this topic
+</label>
+<div class="repotoc-tree">
+  <root/>
+
+</div>
+<div class="toc-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Tutorials</span>
+</p>
+
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="fmcomms2-zed-boot-bin.html">FMCOMMS2 + BOOT.BIN</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jupiter-sdr-from-source.html">Jupiter from source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="switching-releases.html">Switching releases</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Kernel for pyadi-dt</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Targets</span>
+</p>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../targets/hdl.html">hdl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../targets/hdl-boot.html">hdl-boot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../targets/u-boot-xlnx.html">u-boot-xlnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../targets/arm-trusted-firmware.html">arm-trusted-firmware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../targets/adi-linux.html">adi-linux</a></li>
+</ul>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../repository.html">Repository</a></li>
+</ul>
+
+
+</div>
+        </div>
+      </div>
+
+  <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper" id="top-anchor">
+          <div class="body-header">
+  <nav class="breadcrumb empty"><ol></ol></nav>
+</div>
+          <div class="body" role="main">
+            
+  <section id="kernel-images-for-pyadi-dt-hardware-tests">
+<h1>Kernel images for pyadi-dt hardware tests<a class="headerlink" href="#kernel-images-for-pyadi-dt-hardware-tests" title="Link to this heading"></a></h1>
+<p>The <a class="reference internal" href="../targets/adi-linux.html"><span class="doc">adi-linux</span></a> target builds kernel-only images
+from checksum-pinned <code class="docutils literal notranslate"><span class="pre">analogdevicesinc/linux</span></code> source and toolchains and
+publishes an <code class="docutils literal notranslate"><span class="pre">artifacts.json</span></code> that <a class="icon link reference external" href="https://github.com/analogdevicesinc/pyadi-dt" target="_blank">pyadi-dt</a> consumes for its hardware
+CI. No Vivado, no root filesystem — a Linux x86_64 host with the packages
+from <code class="docutils literal notranslate"><span class="pre">os-dependencies.yml</span></code> is enough.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cim<span class="w"> </span>init<span class="w"> </span>--target<span class="w"> </span>adi-linux<span class="w"> </span>--source<span class="w"> </span>https://github.com/tfcollins/datax-manifests.git<span class="w"> </span><span class="se">\</span>
+<span class="w">         </span>--workspace<span class="w"> </span>~/cim-linux<span class="w"> </span>--install
+<span class="nb">cd</span><span class="w"> </span>~/cim-linux<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>cim<span class="w"> </span>makefile
+make<span class="w"> </span>list-combos
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">2023</span><span class="n">_R2</span> <span class="o">/</span> <span class="n">zynq</span> <span class="p">(</span><span class="mi">2023</span><span class="n">_R2</span><span class="p">)</span>
+<span class="mi">2023</span><span class="n">_R2</span> <span class="o">/</span> <span class="n">zynqmp</span> <span class="p">(</span><span class="mi">2023</span><span class="n">_R2</span><span class="p">)</span>
+<span class="mi">2026</span><span class="n">_R1</span> <span class="o">/</span> <span class="n">zynq</span> <span class="p">(</span><span class="n">xlnx_2026</span><span class="mf">.1.0</span><span class="p">)</span>
+<span class="mi">2026</span><span class="n">_R1</span> <span class="o">/</span> <span class="n">zynqmp</span> <span class="p">(</span><span class="n">xlnx_2026</span><span class="mf">.1.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Build both ZynqMP and Zynq images for the 2026_R1 release and verify them
+strictly:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="k">for</span><span class="w"> </span>platform<span class="w"> </span><span class="k">in</span><span class="w"> </span>zynq<span class="w"> </span>zynqmp<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">KERNEL_RELEASE</span><span class="o">=</span>2026_R1<span class="w"> </span><span class="nv">KERNEL_PLATFORM</span><span class="o">=</span><span class="s2">"</span><span class="nv">$platform</span><span class="s2">"</span><span class="w"> </span><span class="nv">KERNEL_JOBS</span><span class="o">=</span><span class="m">8</span>
+<span class="w">  </span>python3<span class="w"> </span>scripts/build-kernel.py<span class="w"> </span>--release<span class="w"> </span>2026_R1<span class="w"> </span>--platform<span class="w"> </span><span class="s2">"</span><span class="nv">$platform</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output<span class="w"> </span><span class="s2">"artifacts/2026_R1/</span><span class="nv">$platform</span><span class="s2">"</span><span class="w"> </span>--verify
+<span class="k">done</span>
+</pre></div>
+</div>
+<p>The first run downloads the pinned source and GCC 12.2.0 cross-toolchain
+archives into <code class="docutils literal notranslate"><span class="pre">~/.cache/cim/adi-linux</span></code> (rehashed on every reuse); a
+rebuild with the same inputs is a no-op. <code class="docutils literal notranslate"><span class="pre">--verify</span></code> prints only the
+absolute <code class="docutils literal notranslate"><span class="pre">artifacts.json</span></code> path on success.</p>
+<p>Hand the manifests to pyadi-dt from the same shell:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ADIDT_CIM_RELEASE</span><span class="o">=</span><span class="m">2026</span>-R1
+<span class="nb">export</span><span class="w"> </span><span class="nv">ADIDT_KERNEL_ARTIFACTS_ZYNQ</span><span class="o">=</span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/artifacts/2026_R1/zynq/artifacts.json"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">ADIDT_KERNEL_ARTIFACTS_ZYNQMP</span><span class="o">=</span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/artifacts/2026_R1/zynqmp/artifacts.json"</span>
+</pre></div>
+</div>
+<p>Note the two spellings: pyadi-dt’s public selector is <code class="docutils literal notranslate"><span class="pre">2026-R1</span></code>; the cim
+variable and helper flag are <code class="docutils literal notranslate"><span class="pre">2026_R1</span></code>. The manifest records release, source
+commit, toolchain and image checksum, so a mismatch fails rather than
+silently booting the wrong kernel.</p>
+<p>To preview a selection without downloading anything:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>guide-dry-run
+python3<span class="w"> </span>scripts/guide-linux.py<span class="w"> </span>--dry-run<span class="w"> </span>--release<span class="w"> </span>2023_R2<span class="w"> </span>--platform<span class="w"> </span>zynq<span class="w"> </span>--jobs<span class="w"> </span><span class="m">4</span>
+</pre></div>
+</div>
+</section>
+
+
+          </div>
+              <div class="related">
+                &nbsp;
+    <a href="switching-releases.html" title="Previous document (Alt+Shift+LeftArrow)" class="prev">Switching HDL releases in one workspace</a>
+    <a href="../targets/hdl.html" title="Next document (Alt+Shift+RightArrow)" class="next">hdl</a>
+              </div>
+          
+        </div>
+      </div>
+  </div>
+
+  <label id="cancel-area-show-toc" for="input-show-toc"></label>
+  <label id="cancel-area-show-localtoc" for="input-show-localtoc"></label>
+    <footer>
+      &#169;2026, Analog Devices, Inc
+      
+      |
+      Made with <a href="https://www.sphinx-doc.org/">Sphinx</a>
+      &amp; <a href="https://github.com/analogdevicesinc/doctools">Doctools</a>
+      
+    </footer>
+  </body>
+</html>

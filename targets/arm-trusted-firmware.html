@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta content="Arm Trusted Firmware" name="description" />
+
+    <title>arm-trusted-firmware &#8212; datax-manifests main documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8e8a900e" />
+    <link rel="stylesheet" type="text/css" href="../_static/app.min.css?v=b1d7a81a" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/diagrams.css?v=f154b667" />
+    <script async="async" src="../_static/app.umd.js?v=daa30c51"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="adi-linux" href="adi-linux.html" />
+    <link rel="prev" title="u-boot-xlnx" href="u-boot-xlnx.html" />
+   
+  
+  
+  
+  <meta name="repository" content="datax-manifests">
+  <meta name="version" content="main">
+  
+    <meta name="page_source_suffix" content=".md">
+  
+  
+  
+
+
+<style>
+  body {
+    
+  }
+
+  body.dark {
+    
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body:not(.light) {
+      
+    }
+  }
+</style>
+  </head>
+  
+    <body>
+  
+  <input type="checkbox" id="input-show-toc">
+  <input type="checkbox" id="input-show-localtoc">
+  <input type="checkbox" id="input-show-repotoc">
+
+  
+  <div class="search-area">
+    <form action="" method="get">
+      <input type="text" name="q" aria-labelledby="search-documentation" value="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" role="search" placeholder="Search"/>
+      <button class="icon"></button>
+    </form>
+  </div>
+  
+
+  <header>
+    <div id="left">
+      <label id="show-sidebar" class="icon" for="input-show-toc" title="Show/hide index"></label>
+    </div>
+    <div id="right">
+      <span>
+        <a id="logo-org" href="https://developer.analog.com/" aria-label="Analog Devices Inc. landing page"></a>
+        <div class="vertical-divider"></div>
+        
+        <label id="show-repotoc" for="input-show-repotoc" title="Show/hide docs">Documentation</label>
+        
+        <a id="logo" href="../index.html">
+          <div>datax-manifests</div>
+        </a>
+      </span>
+      <span class="reverse">
+        <label id="show-localtoc" class="icon" for="input-show-localtoc" title="Show/hide contents"></label>
+      </span>
+    </div>
+  </header>
+
+
+  <div class="repotoc-tree overlay">
+    <root/>
+
+  </div>
+    <div class="localtoc">
+      <div class="tocwrapper">
+        <div class="header localtoc-header">
+          <a id="scroll-up" href="#top-anchor" title="Back to top"></a>
+        </div>
+        <nav>
+          <ul>
+<li><a class="reference internal" href="#">arm-trusted-firmware</a><ul>
+<li><a class="reference internal" href="#quick-start">Quick start</a></li>
+<li><a class="reference internal" href="#variables">Variables</a></li>
+</ul>
+</li>
+</ul>
+
+        </nav>
+      </div>
+    </div>
+
+  
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+    <a id="no-logo" href="../index.html">
+      datax-manifests
+    </a><input id="input-switch-toc" type="checkbox">
+<label id="show-repotoc" for="input-switch-toc">
+All content
+</label>
+<label id="show-toc" for="input-switch-toc">
+Content on this topic
+</label>
+<div class="repotoc-tree">
+  <root/>
+
+</div>
+<div class="toc-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Tutorials</span>
+</p>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/fmcomms2-zed-boot-bin.html">FMCOMMS2 + BOOT.BIN</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/jupiter-sdr-from-source.html">Jupiter from source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/switching-releases.html">Switching releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/kernel-for-pyadi-dt.html">Kernel for pyadi-dt</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Targets</span>
+</p>
+
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="hdl.html">hdl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hdl-boot.html">hdl-boot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="u-boot-xlnx.html">u-boot-xlnx</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">arm-trusted-firmware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="adi-linux.html">adi-linux</a></li>
+</ul>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../repository.html">Repository</a></li>
+</ul>
+
+
+</div>
+        </div>
+      </div>
+
+  <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper" id="top-anchor">
+          <div class="body-header">
+  <nav class="breadcrumb empty"><ol></ol></nav>
+</div>
+          <div class="body" role="main">
+            
+  <section id="arm-trusted-firmware">
+<h1>arm-trusted-firmware<a class="headerlink" href="#arm-trusted-firmware" title="Link to this heading"></a></h1>
+<p><em>Arm Trusted Firmware</em></p>
+<p>Builds <code class="docutils literal notranslate"><span class="pre">bl31.elf</span></code> from
+<a class="icon link reference external" href="https://github.com/Xilinx/arm-trusted-firmware" target="_blank">Xilinx/arm-trusted-firmware</a>
+with the same settings ADI’s <code class="docutils literal notranslate"><span class="pre">build_zynqmp_boot_bin.sh</span></code> uses for its
+“download” path (<code class="docutils literal notranslate"><span class="pre">PLAT=&lt;plat&gt;</span> <span class="pre">RESET_TO_BL31=1</span></code>, tag <code class="docutils literal notranslate"><span class="pre">xilinx-v&lt;Vivado&gt;</span></code>).
+Standalone use, or composed with the HDL build via
+<a class="reference internal" href="hdl-boot.html"><span class="doc">hdl-boot</span></a>.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>File</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sdk.yml</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">arm-trusted-firmware</span></code> git, <code class="docutils literal notranslate"><span class="pre">ATF_*</span></code> variables, <code class="docutils literal notranslate"><span class="pre">sdk-build</span></code> → <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">atf-build</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">os-dependencies.yml</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gcc-aarch64-linux-gnu</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">build-atf.sh</span></code></p></td>
+<td><p>Release→tag mapping, ref switching, build; copied to <code class="docutils literal notranslate"><span class="pre">scripts/</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">atf.mk</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">atf-build</span> <span class="pre">/</span> <span class="pre">atf-dry-run</span> <span class="pre">/</span> <span class="pre">atf-clean</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<section id="quick-start">
+<h2>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cim<span class="w"> </span>init<span class="w"> </span>--target<span class="w"> </span>arm-trusted-firmware<span class="w"> </span>--source<span class="w"> </span>https://github.com/tfcollins/datax-manifests.git<span class="w"> </span>--workspace<span class="w"> </span>~/cim-atf<span class="w"> </span>--install
+<span class="nb">cd</span><span class="w"> </span>~/cim-atf<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>cim<span class="w"> </span>makefile
+make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">ATF_PLAT</span><span class="o">=</span>zynqmp<span class="w"> </span><span class="nv">ATF_RELEASE</span><span class="o">=</span>hdl_2026_r1
+ls<span class="w"> </span>-l<span class="w"> </span>arm-trusted-firmware/bl31.elf
+</pre></div>
+</div>
+</section>
+<section id="variables">
+<h2>Variables<a class="headerlink" href="#variables" title="Link to this heading"></a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ATF_PLAT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">zynqmp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">zynqmp</span></code> or <code class="docutils literal notranslate"><span class="pre">versal</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ATF_RELEASE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hdl_2026_r1</span></code></p></td>
+<td><p>HDL / Vivado release → tag (<code class="docutils literal notranslate"><span class="pre">hdl_2023_r2</span></code> → <code class="docutils literal notranslate"><span class="pre">xilinx-v2023.2</span></code>, <code class="docutils literal notranslate"><span class="pre">hdl_2026_r1</span></code> → <code class="docutils literal notranslate"><span class="pre">xilinx-v2025.1</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ATF_REF</span></code></p></td>
+<td><p>(empty)</p></td>
+<td><p>Explicit tag/branch/sha, overrides <code class="docutils literal notranslate"><span class="pre">ATF_RELEASE</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ATF_CONSOLE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cadence0</span></code></p></td>
+<td><p>ZynqMP UART used by BL31 (<code class="docutils literal notranslate"><span class="pre">cadence1</span></code> for boards wired to UART1)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The result is copied to <code class="docutils literal notranslate"><span class="pre">arm-trusted-firmware/bl31.elf</span></code> (from
+<code class="docutils literal notranslate"><span class="pre">build/&lt;plat&gt;/release/bl31/bl31.elf</span></code>) so consumers have one stable path —
+<code class="docutils literal notranslate"><span class="pre">BOOT_BIN_ATF=</span></code> in the <a class="reference internal" href="hdl.html"><span class="doc">hdl</span></a> target. Zynq-7000 designs do
+not use BL31.</p>
+</section>
+</section>
+
+
+          </div>
+              <div class="related">
+                &nbsp;
+    <a href="u-boot-xlnx.html" title="Previous document (Alt+Shift+LeftArrow)" class="prev">u-boot-xlnx</a>
+    <a href="adi-linux.html" title="Next document (Alt+Shift+RightArrow)" class="next">adi-linux</a>
+              </div>
+          
+        </div>
+      </div>
+  </div>
+
+  <label id="cancel-area-show-toc" for="input-show-toc"></label>
+  <label id="cancel-area-show-localtoc" for="input-show-localtoc"></label>
+    <footer>
+      &#169;2026, Analog Devices, Inc
+      
+      |
+      Made with <a href="https://www.sphinx-doc.org/">Sphinx</a>
+      &amp; <a href="https://github.com/analogdevicesinc/doctools">Doctools</a>
+      
+    </footer>
+  </body>
+</html>

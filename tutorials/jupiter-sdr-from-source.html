@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta content="jupiter_sdr is a ZynqMP SOM design with no carrier board. This tutorial builds it with the hdl-boot target, which compiles u-boot and Arm Trusted Firmware in the same workspace before Vivado runs, so the resulting BOOT.BIN contains no downloaded binaries." name="description" />
+
+    <title>Jupiter SDR with u-boot and BL31 from source &#8212; datax-manifests main documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8e8a900e" />
+    <link rel="stylesheet" type="text/css" href="../_static/app.min.css?v=b1d7a81a" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/diagrams.css?v=f154b667" />
+    <script async="async" src="../_static/app.umd.js?v=daa30c51"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Switching HDL releases in one workspace" href="switching-releases.html" />
+    <link rel="prev" title="FMCOMMS2 on ZedBoard with a BOOT.BIN" href="fmcomms2-zed-boot-bin.html" />
+   
+  
+  
+  
+  <meta name="repository" content="datax-manifests">
+  <meta name="version" content="main">
+  
+    <meta name="page_source_suffix" content=".rst">
+  
+  
+  
+
+
+<style>
+  body {
+    
+  }
+
+  body.dark {
+    
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body:not(.light) {
+      
+    }
+  }
+</style>
+  </head>
+  
+    <body>
+  
+  <input type="checkbox" id="input-show-toc">
+  <input type="checkbox" id="input-show-localtoc">
+  <input type="checkbox" id="input-show-repotoc">
+
+  
+  <div class="search-area">
+    <form action="" method="get">
+      <input type="text" name="q" aria-labelledby="search-documentation" value="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" role="search" placeholder="Search"/>
+      <button class="icon"></button>
+    </form>
+  </div>
+  
+
+  <header>
+    <div id="left">
+      <label id="show-sidebar" class="icon" for="input-show-toc" title="Show/hide index"></label>
+    </div>
+    <div id="right">
+      <span>
+        <a id="logo-org" href="https://developer.analog.com/" aria-label="Analog Devices Inc. landing page"></a>
+        <div class="vertical-divider"></div>
+        
+        <label id="show-repotoc" for="input-show-repotoc" title="Show/hide docs">Documentation</label>
+        
+        <a id="logo" href="../index.html">
+          <div>datax-manifests</div>
+        </a>
+      </span>
+      <span class="reverse">
+        <label id="show-localtoc" class="icon" for="input-show-localtoc" title="Show/hide contents"></label>
+      </span>
+    </div>
+  </header>
+
+
+  <div class="repotoc-tree overlay">
+    <root/>
+
+  </div>
+    <div class="localtoc">
+      <div class="tocwrapper">
+        <div class="header localtoc-header">
+          <a id="scroll-up" href="#top-anchor" title="Back to top"></a>
+        </div>
+        <nav>
+          <ul>
+<li><a class="reference internal" href="#">Jupiter SDR with u-boot and BL31 from source</a><ul>
+<li><a class="reference internal" href="#requirements">Requirements</a></li>
+<li><a class="reference internal" href="#create-the-workspace">1. Create the workspace</a></li>
+<li><a class="reference internal" href="#see-what-will-be-built">2. See what will be built</a></li>
+<li><a class="reference internal" href="#build">3. Build</a></li>
+<li><a class="reference internal" href="#results">4. Results</a></li>
+<li><a class="reference internal" href="#variations">Variations</a></li>
+</ul>
+</li>
+</ul>
+
+        </nav>
+      </div>
+    </div>
+
+  
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+    <a id="no-logo" href="../index.html">
+      datax-manifests
+    </a><input id="input-switch-toc" type="checkbox">
+<label id="show-repotoc" for="input-switch-toc">
+All content
+</label>
+<label id="show-toc" for="input-switch-toc">
+Content on this topic
+</label>
+<div class="repotoc-tree">
+  <root/>
+
+</div>
+<div class="toc-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Tutorials</span>
+</p>
+
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="fmcomms2-zed-boot-bin.html">FMCOMMS2 + BOOT.BIN</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Jupiter from source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="switching-releases.html">Switching releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kernel-for-pyadi-dt.html">Kernel for pyadi-dt</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Targets</span>
+</p>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../targets/hdl.html">hdl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../targets/hdl-boot.html">hdl-boot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../targets/u-boot-xlnx.html">u-boot-xlnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../targets/arm-trusted-firmware.html">arm-trusted-firmware</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../targets/adi-linux.html">adi-linux</a></li>
+</ul>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../repository.html">Repository</a></li>
+</ul>
+
+
+</div>
+        </div>
+      </div>
+
+  <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper" id="top-anchor">
+          <div class="body-header">
+  <nav class="breadcrumb empty"><ol></ol></nav>
+</div>
+          <div class="body" role="main">
+            
+  <section id="jupiter-sdr-with-u-boot-and-bl31-from-source">
+<h1>Jupiter SDR with u-boot and BL31 from source<a class="headerlink" href="#jupiter-sdr-with-u-boot-and-bl31-from-source" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">jupiter_sdr</span></code> is a ZynqMP SOM design with no carrier board. This tutorial
+builds it with the <a class="reference internal" href="../targets/hdl-boot.html"><span class="doc">hdl-boot</span></a> target, which compiles
+u-boot and Arm Trusted Firmware in the same workspace before Vivado runs, so
+the resulting <code class="docutils literal notranslate"><span class="pre">BOOT.BIN</span></code> contains no downloaded binaries.</p>
+<section id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Vivado 2025.1 with Vitis (<code class="docutils literal notranslate"><span class="pre">hdl_2026_r1</span></code> is validated against it).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gcc-aarch64-linux-gnu</span></code> and the u-boot host build dependencies —
+installed by <code class="docutils literal notranslate"><span class="pre">--install</span></code> below.</p></li>
+</ul>
+</section>
+<section id="create-the-workspace">
+<h2>1. Create the workspace<a class="headerlink" href="#create-the-workspace" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GIT_LFS_SKIP_SMUDGE</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>cim<span class="w"> </span>init<span class="w"> </span>--target<span class="w"> </span>hdl-boot<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--source<span class="w"> </span>https://github.com/tfcollins/datax-manifests.git<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--workspace<span class="w"> </span>~/cim-jupiter<span class="w"> </span>--install
+<span class="nb">cd</span><span class="w"> </span>~/cim-jupiter
+cim<span class="w"> </span>makefile
+</pre></div>
+</div>
+<p>Three repositories are cloned: <code class="docutils literal notranslate"><span class="pre">hdl/</span></code> (at <code class="docutils literal notranslate"><span class="pre">hdl_2026_r1</span></code>), <code class="docutils literal notranslate"><span class="pre">u-boot-xlnx/</span></code>
+and <code class="docutils literal notranslate"><span class="pre">arm-trusted-firmware/</span></code>. The generated Makefile has
+<code class="docutils literal notranslate"><span class="pre">sdk-build:</span> <span class="pre">u-boot-xlnx</span> <span class="pre">arm-trusted-firmware</span></code>.</p>
+</section>
+<section id="see-what-will-be-built">
+<h2>2. See what will be built<a class="headerlink" href="#see-what-will-be-built" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>boot-dry-run<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>jupiter_sdr
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">u</span><span class="o">-</span><span class="n">boot</span><span class="o">-</span><span class="n">xlnx</span> <span class="n">build</span>
+  <span class="n">Board</span><span class="p">:</span>         <span class="n">jupiter_sdr</span>
+  <span class="n">Ref</span><span class="p">:</span>           <span class="n">jupiter</span><span class="o">-</span><span class="n">sdr</span>
+  <span class="n">Defconfig</span><span class="p">:</span>     <span class="n">xilinx_zynqmp_virt_defconfig</span>
+  <span class="n">DEVICE_TREE</span><span class="p">:</span>   <span class="n">zynqmp</span><span class="o">-</span><span class="n">jupiter</span><span class="o">-</span><span class="n">sdr</span>
+  <span class="n">CROSS_COMPILE</span><span class="p">:</span> <span class="n">aarch64</span><span class="o">-</span><span class="n">linux</span><span class="o">-</span><span class="n">gnu</span><span class="o">-</span>
+<span class="n">arm</span><span class="o">-</span><span class="n">trusted</span><span class="o">-</span><span class="n">firmware</span> <span class="n">build</span>
+  <span class="n">PLAT</span><span class="p">:</span>          <span class="n">zynqmp</span>
+  <span class="n">Ref</span><span class="p">:</span>           <span class="n">xilinx</span><span class="o">-</span><span class="n">v2025</span><span class="mf">.1</span>
+</pre></div>
+</div>
+<p>Everything was derived from the project: the u-boot preset comes from the
+design name (Jupiter’s u-boot lives on ADI’s <code class="docutils literal notranslate"><span class="pre">jupiter-sdr</span></code> branch), the ATF
+platform from the device in <code class="docutils literal notranslate"><span class="pre">system_project.tcl</span></code> (<code class="docutils literal notranslate"><span class="pre">xczu3eg</span></code> → ZynqMP) and
+its tag from the Vivado release. <code class="docutils literal notranslate"><span class="pre">HDL_BOARD</span></code> is not needed and is ignored
+if set.</p>
+<p>Confirm the host can compile u-boot before starting:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>bash<span class="w"> </span>scripts/build-uboot.sh<span class="w"> </span>--board<span class="w"> </span>jupiter_sdr<span class="w"> </span>--check-deps
+</pre></div>
+</div>
+</section>
+<section id="build">
+<h2>3. Build<a class="headerlink" href="#build" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">HDL_PROJECT</span><span class="o">=</span>jupiter_sdr
+</pre></div>
+</div>
+<p>In order: <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">boot-uboot</span></code> (~2 min, <code class="docutils literal notranslate"><span class="pre">u-boot-xlnx/u-boot.elf</span></code>),
+<code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">boot-atf</span></code> (~10 s, <code class="docutils literal notranslate"><span class="pre">arm-trusted-firmware/bl31.elf</span></code>), then the Vivado
+build and <code class="docutils literal notranslate"><span class="pre">build_zynqmp_boot_bin.sh</span></code> — FSBL and PMUFW generated from the XSA
+with <code class="docutils literal notranslate"><span class="pre">xsct</span></code>, then <code class="docutils literal notranslate"><span class="pre">bootgen</span></code> packs FSBL + PMUFW + bitstream + BL31 + u-boot.</p>
+<p>Or interactively: <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">guide</span></code>, pick <code class="docutils literal notranslate"><span class="pre">jupiter_sdr</span></code>, accept BOOT.BIN and
+“from source” — the wizard shows the same resolution and runs this command.</p>
+</section>
+<section id="results">
+<h2>4. Results<a class="headerlink" href="#results" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">u</span><span class="o">-</span><span class="n">boot</span><span class="o">-</span><span class="n">xlnx</span><span class="o">/</span><span class="n">u</span><span class="o">-</span><span class="n">boot</span><span class="o">.</span><span class="n">elf</span>
+<span class="n">arm</span><span class="o">-</span><span class="n">trusted</span><span class="o">-</span><span class="n">firmware</span><span class="o">/</span><span class="n">bl31</span><span class="o">.</span><span class="n">elf</span>
+<span class="n">hdl</span><span class="o">/</span><span class="n">projects</span><span class="o">/</span><span class="n">jupiter_sdr</span><span class="o">/</span><span class="n">build</span><span class="o">/</span><span class="n">jupiter_sdr</span><span class="o">.</span><span class="n">sdk</span><span class="o">/</span><span class="n">system_top</span><span class="o">.</span><span class="n">xsa</span>
+<span class="n">hdl</span><span class="o">/</span><span class="n">projects</span><span class="o">/</span><span class="n">jupiter_sdr</span><span class="o">/</span><span class="n">output_boot_bin</span><span class="o">/</span><span class="n">BOOT</span><span class="o">.</span><span class="n">BIN</span>
+</pre></div>
+</div>
+</section>
+<section id="variations">
+<h2>Variations<a class="headerlink" href="#variations" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Fall back to ADI’s prebuilt u-boot for one build:
+<code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">sdk-build</span> <span class="pre">HDL_PROJECT=jupiter_sdr</span> <span class="pre">BOOT_BIN_UBOOT=download</span> <span class="pre">BOOT_BIN_ATF=download</span></code>.</p></li>
+<li><p>A ZynqMP carrier design works the same way:
+<code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">sdk-build</span> <span class="pre">HDL_PROJECT=fmcomms2</span> <span class="pre">HDL_BOARD=zcu102</span></code> (u-boot from the
+<code class="docutils literal notranslate"><span class="pre">xlnx_rebase_v2025.01_2025.1</span></code> tag, <code class="docutils literal notranslate"><span class="pre">zynqmp-zcu102-rev1.0</span></code> device tree).</p></li>
+<li><p>Build only the boot components, no Vivado: use the standalone
+<a class="reference internal" href="../targets/u-boot-xlnx.html"><span class="doc">u-boot-xlnx</span></a> and
+<a class="reference internal" href="../targets/arm-trusted-firmware.html"><span class="doc">arm-trusted-firmware</span></a> targets — they
+need no EDA tools and run on any x86 host.</p></li>
+</ul>
+</section>
+</section>
+
+
+          </div>
+              <div class="related">
+                &nbsp;
+    <a href="fmcomms2-zed-boot-bin.html" title="Previous document (Alt+Shift+LeftArrow)" class="prev">FMCOMMS2 on ZedBoard with a BOOT.BIN</a>
+    <a href="switching-releases.html" title="Next document (Alt+Shift+RightArrow)" class="next">Switching HDL releases in one workspace</a>
+              </div>
+          
+        </div>
+      </div>
+  </div>
+
+  <label id="cancel-area-show-toc" for="input-show-toc"></label>
+  <label id="cancel-area-show-localtoc" for="input-show-localtoc"></label>
+    <footer>
+      &#169;2026, Analog Devices, Inc
+      
+      |
+      Made with <a href="https://www.sphinx-doc.org/">Sphinx</a>
+      &amp; <a href="https://github.com/analogdevicesinc/doctools">Doctools</a>
+      
+    </footer>
+  </body>
+</html>

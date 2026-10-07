@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta content="Linux kernel" name="description" />
+
+    <title>adi-linux &#8212; datax-manifests main documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8e8a900e" />
+    <link rel="stylesheet" type="text/css" href="../_static/app.min.css?v=b1d7a81a" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/diagrams.css?v=f154b667" />
+    <script async="async" src="../_static/app.umd.js?v=daa30c51"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Repository" href="../repository.html" />
+    <link rel="prev" title="arm-trusted-firmware" href="arm-trusted-firmware.html" />
+   
+  
+  
+  
+  <meta name="repository" content="datax-manifests">
+  <meta name="version" content="main">
+  
+    <meta name="page_source_suffix" content=".md">
+  
+  
+  
+
+
+<style>
+  body {
+    
+  }
+
+  body.dark {
+    
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body:not(.light) {
+      
+    }
+  }
+</style>
+  </head>
+  
+    <body>
+  
+  <input type="checkbox" id="input-show-toc">
+  <input type="checkbox" id="input-show-localtoc">
+  <input type="checkbox" id="input-show-repotoc">
+
+  
+  <div class="search-area">
+    <form action="" method="get">
+      <input type="text" name="q" aria-labelledby="search-documentation" value="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" role="search" placeholder="Search"/>
+      <button class="icon"></button>
+    </form>
+  </div>
+  
+
+  <header>
+    <div id="left">
+      <label id="show-sidebar" class="icon" for="input-show-toc" title="Show/hide index"></label>
+    </div>
+    <div id="right">
+      <span>
+        <a id="logo-org" href="https://developer.analog.com/" aria-label="Analog Devices Inc. landing page"></a>
+        <div class="vertical-divider"></div>
+        
+        <label id="show-repotoc" for="input-show-repotoc" title="Show/hide docs">Documentation</label>
+        
+        <a id="logo" href="../index.html">
+          <div>datax-manifests</div>
+        </a>
+      </span>
+      <span class="reverse">
+        <label id="show-localtoc" class="icon" for="input-show-localtoc" title="Show/hide contents"></label>
+      </span>
+    </div>
+  </header>
+
+
+  <div class="repotoc-tree overlay">
+    <root/>
+
+  </div>
+    <div class="localtoc">
+      <div class="tocwrapper">
+        <div class="header localtoc-header">
+          <a id="scroll-up" href="#top-anchor" title="Back to top"></a>
+        </div>
+        <nav>
+          <ul>
+<li><a class="reference internal" href="#">adi-linux</a><ul>
+<li><a class="reference internal" href="#requirements">Requirements</a></li>
+<li><a class="reference internal" href="#build-with-cim">Build with cim</a><ul>
+<li><a class="reference internal" href="#supported-combinations">Supported combinations</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#guided-build-like-the-hdl-target">Guided build (like the HDL target)</a></li>
+<li><a class="reference internal" href="#standalone-helper-cli">Standalone helper CLI</a></li>
+<li><a class="reference internal" href="#pins-and-packaging">Pins and packaging</a></li>
+<li><a class="reference internal" href="#artifact-contract-v1">Artifact contract v1</a></li>
+<li><a class="reference internal" href="#cache-and-concurrency">Cache and concurrency</a></li>
+<li><a class="reference internal" href="#using-artifacts-with-pyadi-dt">Using artifacts with pyadi-dt</a></li>
+<li><a class="reference internal" href="#verification">Verification</a></li>
+</ul>
+</li>
+</ul>
+
+        </nav>
+      </div>
+    </div>
+
+  
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+    <a id="no-logo" href="../index.html">
+      datax-manifests
+    </a><input id="input-switch-toc" type="checkbox">
+<label id="show-repotoc" for="input-switch-toc">
+All content
+</label>
+<label id="show-toc" for="input-switch-toc">
+Content on this topic
+</label>
+<div class="repotoc-tree">
+  <root/>
+
+</div>
+<div class="toc-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Tutorials</span>
+</p>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/fmcomms2-zed-boot-bin.html">FMCOMMS2 + BOOT.BIN</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/jupiter-sdr-from-source.html">Jupiter from source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/switching-releases.html">Switching releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/kernel-for-pyadi-dt.html">Kernel for pyadi-dt</a></li>
+</ul>
+
+<p class="caption" role="heading">
+  <span class="caption-text">Targets</span>
+</p>
+
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="hdl.html">hdl</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hdl-boot.html">hdl-boot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="u-boot-xlnx.html">u-boot-xlnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arm-trusted-firmware.html">arm-trusted-firmware</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">adi-linux</a></li>
+</ul>
+
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../repository.html">Repository</a></li>
+</ul>
+
+
+</div>
+        </div>
+      </div>
+
+  <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper" id="top-anchor">
+          <div class="body-header">
+  <nav class="breadcrumb empty"><ol></ol></nav>
+</div>
+          <div class="body" role="main">
+            
+  <section id="adi-linux">
+<h1>adi-linux<a class="headerlink" href="#adi-linux" title="Link to this heading"></a></h1>
+<p><em>Linux kernel</em></p>
+<p>Self-contained, kernel-only target that builds <code class="docutils literal notranslate"><span class="pre">analogdevicesinc/linux</span></code> images
+for Zynq and ZynqMP from checksum-pinned source and toolchain archives. The
+release and platform are selected at make time in a single initialized
+workspace. It does <strong>not</strong> build DTBs, install modules, build a root filesystem
+or BOOT.BIN, flash, reserve or test boards; device-tree overlays are maintained
+separately. Upstream defconfigs and their embedded firmware selections are
+preserved without pruning.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>File</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sdk.yml</span></code></p></td>
+<td><p>Manifest: variables, <code class="docutils literal notranslate"><span class="pre">copy_files</span></code>, <code class="docutils literal notranslate"><span class="pre">sdk-build</span></code> recipe</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">os-dependencies.yml</span></code></p></td>
+<td><p>Host packages (Ubuntu 24.04 recipe)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">build-kernel.py</span></code></p></td>
+<td><p>Pinned downloader/builder/verifier; copied to <code class="docutils literal notranslate"><span class="pre">scripts/build-kernel.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">guide-linux.py</span></code></p></td>
+<td><p>Offline discovery and guided wizard; copied to <code class="docutils literal notranslate"><span class="pre">scripts/guide-linux.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">linux.mk</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">guide</span></code>, <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">list-combos</span></code>, … helper targets</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<section id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading"></a></h2>
+<p>Linux x86_64 host, Python 3.11.8+ (tarfile data-extraction filter), GNU make,
+host GCC, <code class="docutils literal notranslate"><span class="pre">bc</span></code>, <code class="docutils literal notranslate"><span class="pre">bison</span></code>, <code class="docutils literal notranslate"><span class="pre">flex</span></code>, <code class="docutils literal notranslate"><span class="pre">libssl-dev</span></code>, <code class="docutils literal notranslate"><span class="pre">libelf-dev</span></code>. Allow several GB
+of working space and an initial network download of source and toolchains.
+No root privileges are required after host dependencies are installed
+(<code class="docutils literal notranslate"><span class="pre">cim</span> <span class="pre">install</span> <span class="pre">os-deps</span> <span class="pre">--yes</span></code> in the workspace may need sudo).</p>
+</section>
+<section id="build-with-cim">
+<h2>Build with cim<a class="headerlink" href="#build-with-cim" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cim<span class="w"> </span>init<span class="w"> </span>--target<span class="w"> </span>adi-linux<span class="w"> </span>--source<span class="w"> </span>https://github.com/tfcollins/datax-manifests.git<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--workspace<span class="w"> </span><span class="s2">"</span><span class="nv">$HOME</span><span class="s2">/cim-linux"</span><span class="w"> </span>--yes
+<span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="nv">$HOME</span><span class="s2">/cim-linux"</span>
+cim<span class="w"> </span>makefile
+make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">KERNEL_JOBS</span><span class="o">=</span><span class="m">4</span>
+python3<span class="w"> </span>scripts/build-kernel.py<span class="w"> </span>--platform<span class="w"> </span>zynq<span class="w"> </span>--output<span class="w"> </span>artifacts/2023_R2/zynq<span class="w"> </span>--verify
+</pre></div>
+</div>
+<p>Pin to a reviewed commit of this repository with <code class="docutils literal notranslate"><span class="pre">--version</span> <span class="pre">&lt;commit&gt;</span></code> for
+immutable initialization, or use <code class="docutils literal notranslate"><span class="pre">--source</span> <span class="pre">/absolute/path/to/datax-manifests</span></code>
+for local development.</p>
+<p>Defaults are <code class="docutils literal notranslate"><span class="pre">KERNEL_RELEASE=2023_R2</span></code>, <code class="docutils literal notranslate"><span class="pre">KERNEL_PLATFORM=zynq</span></code>, <code class="docutils literal notranslate"><span class="pre">KERNEL_JOBS=4</span></code>.
+Select either release (<code class="docutils literal notranslate"><span class="pre">2023_R2</span></code>, <code class="docutils literal notranslate"><span class="pre">2026_R1</span></code>) and platform (<code class="docutils literal notranslate"><span class="pre">zynq</span></code>, <code class="docutils literal notranslate"><span class="pre">zynqmp</span></code>)
+in the same workspace:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">KERNEL_RELEASE</span><span class="o">=</span>2026_R1<span class="w"> </span><span class="nv">KERNEL_PLATFORM</span><span class="o">=</span>zynqmp
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">KERNEL_OUTPUT</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">artifacts/$(KERNEL_RELEASE)/$(KERNEL_PLATFORM)</span></code>
+and is resolved by make, so overriding one selector never reuses the other
+pair’s output. An explicit <code class="docutils literal notranslate"><span class="pre">KERNEL_OUTPUT=/path</span></code> is an exact override — keep
+custom paths separate per release/platform. Use <code class="docutils literal notranslate"><span class="pre">KERNEL_JOBS</span></code> rather than an
+outer <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">-j</span></code> to control kernel parallelism. Initialization alone does not
+compile Linux.</p>
+<section id="supported-combinations">
+<h3>Supported combinations<a class="headerlink" href="#supported-combinations" title="Link to this heading"></a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>KERNEL_RELEASE</p></th>
+<th class="head"><p>KERNEL_PLATFORM</p></th>
+<th class="head"><p>Default KERNEL_OUTPUT</p></th>
+<th class="head"><p>Image</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>2023_R2</p></td>
+<td><p>zynq</p></td>
+<td><p>artifacts/2023_R2/zynq</p></td>
+<td><p>uImage</p></td>
+</tr>
+<tr class="row-odd"><td><p>2023_R2</p></td>
+<td><p>zynqmp</p></td>
+<td><p>artifacts/2023_R2/zynqmp</p></td>
+<td><p>Image</p></td>
+</tr>
+<tr class="row-even"><td><p>2026_R1</p></td>
+<td><p>zynq</p></td>
+<td><p>artifacts/2026_R1/zynq</p></td>
+<td><p>uImage</p></td>
+</tr>
+<tr class="row-odd"><td><p>2026_R1</p></td>
+<td><p>zynqmp</p></td>
+<td><p>artifacts/2026_R1/zynqmp</p></td>
+<td><p>Image</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The final image is in a generation subdirectory of the output; <code class="docutils literal notranslate"><span class="pre">artifacts.json</span></code>
+at the output root is the only discovery interface.</p>
+<p>These executable examples preview every supported selection without downloads
+or artifact changes (<code class="docutils literal notranslate"><span class="pre">tests/test_linux_docs.py</span></code> runs this exact block):</p>
+<!-- linux-offline-examples -->
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/guide-linux.py<span class="w"> </span>--list
+python3<span class="w"> </span>scripts/guide-linux.py<span class="w"> </span>--dry-run<span class="w"> </span>--release<span class="w"> </span>2023_R2<span class="w"> </span>--platform<span class="w"> </span>zynq<span class="w"> </span>--jobs<span class="w"> </span><span class="m">4</span>
+python3<span class="w"> </span>scripts/guide-linux.py<span class="w"> </span>--dry-run<span class="w"> </span>--release<span class="w"> </span>2023_R2<span class="w"> </span>--platform<span class="w"> </span>zynqmp<span class="w"> </span>--jobs<span class="w"> </span><span class="m">4</span>
+python3<span class="w"> </span>scripts/guide-linux.py<span class="w"> </span>--dry-run<span class="w"> </span>--release<span class="w"> </span>2026_R1<span class="w"> </span>--platform<span class="w"> </span>zynq<span class="w"> </span>--jobs<span class="w"> </span><span class="m">4</span>
+python3<span class="w"> </span>scripts/guide-linux.py<span class="w"> </span>--dry-run<span class="w"> </span>--release<span class="w"> </span>2026_R1<span class="w"> </span>--platform<span class="w"> </span>zynqmp<span class="w"> </span>--jobs<span class="w"> </span><span class="m">4</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="guided-build-like-the-hdl-target">
+<h2>Guided build (like the HDL target)<a class="headerlink" href="#guided-build-like-the-hdl-target" title="Link to this heading"></a></h2>
+<p>After <code class="docutils literal notranslate"><span class="pre">cim</span> <span class="pre">makefile</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>guide-help
+make<span class="w"> </span>list-combos
+make<span class="w"> </span>guide<span class="w">          </span><span class="c1"># interactive wizard</span>
+make<span class="w"> </span>guide-dry-run<span class="w">  </span><span class="c1"># wizard that stops before confirmation</span>
+</pre></div>
+</div>
+<p>The wizard selects release, platform, job count and output folder, then prints
+shell-quoted build and offline verification commands. Enter accepts a default;
+<code class="docutils literal notranslate"><span class="pre">?</span></code> or <code class="docutils literal notranslate"><span class="pre">list</span></code> shows choices; at the final prompt explicitly choose <code class="docutils literal notranslate"><span class="pre">build</span></code> or
+<code class="docutils literal notranslate"><span class="pre">verify</span></code> — the default is <strong>no</strong>. <code class="docutils literal notranslate"><span class="pre">q</span></code>, <code class="docutils literal notranslate"><span class="pre">cancel</span></code>, <code class="docutils literal notranslate"><span class="pre">quit</span></code>, Ctrl-C or EOF exit
+without starting anything. Release <code class="docutils literal notranslate"><span class="pre">2026_R1</span></code> selects tag <code class="docutils literal notranslate"><span class="pre">xlnx_2026.1.0</span></code>.</p>
+<p>Direct, non-interactive use needs an explicit action:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/guide-linux.py<span class="w"> </span>--verify<span class="w"> </span>--release<span class="w"> </span>2026_R1<span class="w"> </span>--platform<span class="w"> </span>zynqmp<span class="w"> </span>--output<span class="w"> </span>artifacts/2026_R1/zynqmp
+python3<span class="w"> </span>scripts/guide-linux.py<span class="w"> </span>--build<span class="w">  </span>--release<span class="w"> </span>2023_R2<span class="w"> </span>--platform<span class="w"> </span>zynq<span class="w"> </span>--jobs<span class="w"> </span><span class="m">4</span>
+</pre></div>
+</div>
+<p>Options: <code class="docutils literal notranslate"><span class="pre">-i/--interactive</span></code>, <code class="docutils literal notranslate"><span class="pre">-l/--list</span></code>, <code class="docutils literal notranslate"><span class="pre">--release</span></code>, <code class="docutils literal notranslate"><span class="pre">--platform</span></code>,
+<code class="docutils literal notranslate"><span class="pre">-j/--jobs</span></code>, <code class="docutils literal notranslate"><span class="pre">--output</span></code>, at most one of <code class="docutils literal notranslate"><span class="pre">--dry-run</span> <span class="pre">|</span> <span class="pre">--build</span> <span class="pre">|</span> <span class="pre">--verify</span></code>,
+<code class="docutils literal notranslate"><span class="pre">-h/--help</span></code>. The guide passes arguments directly (no shell); paths with spaces
+are preserved, but upstream kernel make does not support spaces in a fresh
+build — choose a space-free output path. The guide never changes
+<code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">sdk-build</span></code> defaults and does not expose the helper’s <code class="docutils literal notranslate"><span class="pre">--cache</span></code>/<code class="docutils literal notranslate"><span class="pre">--force</span></code>.</p>
+</section>
+<section id="standalone-helper-cli">
+<h2>Standalone helper CLI<a class="headerlink" href="#standalone-helper-cli" title="Link to this heading"></a></h2>
+<p>The same implementation is callable directly from this repository:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>targets/adi-linux/build-kernel.py<span class="w"> </span>--release<span class="w"> </span>2026_R1<span class="w"> </span>--platform<span class="w"> </span>zynq<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>/absolute/output/2026_R1/zynq<span class="w"> </span>--jobs<span class="w"> </span><span class="m">4</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">--platform</span></code> and <code class="docutils literal notranslate"><span class="pre">--output</span></code> are required; <code class="docutils literal notranslate"><span class="pre">--release</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">2023_R2</span></code>;
+standalone <code class="docutils literal notranslate"><span class="pre">--jobs</span></code> defaults to the host CPU count. Exit zero means the
+manifest and image were validated. Stdout contains <strong>only</strong> the absolute
+<code class="docutils literal notranslate"><span class="pre">artifacts.json</span></code> path; logs go to stderr. <code class="docutils literal notranslate"><span class="pre">--verify</span></code> validates offline without
+downloads or builds. <code class="docutils literal notranslate"><span class="pre">--cache</span> <span class="pre">DIR</span></code> selects the archive cache (default
+<code class="docutils literal notranslate"><span class="pre">~/.cache/cim/adi-linux</span></code>). <code class="docutils literal notranslate"><span class="pre">--force</span></code> rebuilds without invalidating a previously
+published generation on failure. Always pass the same release to <code class="docutils literal notranslate"><span class="pre">--verify</span></code>
+that was used to build — never verify a 2026_R1 image with the implicit
+2023_R2 default.</p>
+</section>
+<section id="pins-and-packaging">
+<h2>Pins and packaging<a class="headerlink" href="#pins-and-packaging" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>2023_R2</strong>: <code class="docutils literal notranslate"><span class="pre">analogdevicesinc/linux</span></code> branch <code class="docutils literal notranslate"><span class="pre">2023_R2</span></code> frozen at commit
+<code class="docutils literal notranslate"><span class="pre">86d61468a7856e952c7ca237f798d86d6abd2e27</span></code> (the lowercase <code class="docutils literal notranslate"><span class="pre">2023_r2</span></code> tag is
+intentionally not substituted).</p></li>
+<li><p><strong>2026_R1</strong>: tag <code class="docutils literal notranslate"><span class="pre">xlnx_2026.1.0</span></code>, commit
+<code class="docutils literal notranslate"><span class="pre">b47bbbe8ca7bc582c96251fa30d86e55de363f68</span></code>, archive SHA-256
+<code class="docutils literal notranslate"><span class="pre">0886274c27356de24e3b7030817e1669d1e14b42a17a2c24055d74dad16472ed</span></code>,
+kernel 6.12.77. Its <code class="docutils literal notranslate"><span class="pre">firmware/</span></code> tree carries the complete
+<code class="docutils literal notranslate"><span class="pre">CONFIG_EXTRA_FIRMWARE</span></code> selections (24 files ARM, 38 files ARM64, including
+Navassa and ADRV9025 files); nothing is pruned or fetched unpinned.</p></li>
+<li><p>Compiler: kernel.org x86_64 GCC 12.2.0 nolibc cross-toolchains, SHA-256
+pinned from the vendor <code class="docutils literal notranslate"><span class="pre">sha256sums.asc</span></code>. Prefixes <code class="docutils literal notranslate"><span class="pre">arm-linux-gnueabi-</span></code> and
+<code class="docutils literal notranslate"><span class="pre">aarch64-linux-</span></code> (kernel-only compilers, deliberately not the userspace
+<code class="docutils literal notranslate"><span class="pre">-gnueabihf</span></code>/<code class="docutils literal notranslate"><span class="pre">-gnu</span></code> distro prefixes). Host cross-compilers are never used.</p></li>
+<li><p>Zynq: <code class="docutils literal notranslate"><span class="pre">ARCH=arm</span></code>, <code class="docutils literal notranslate"><span class="pre">zynq_xcomm_adv7511_defconfig</span></code>, <code class="docutils literal notranslate"><span class="pre">zImage</span></code> wrapped as a
+legacy <code class="docutils literal notranslate"><span class="pre">uImage</span></code> with load and entry <code class="docutils literal notranslate"><span class="pre">0x8000</span></code>; the stdlib packager writes the
+64-byte U-Boot header (<code class="docutils literal notranslate"><span class="pre">mkimage</span></code> is not a dependency).</p></li>
+<li><p>ZynqMP: <code class="docutils literal notranslate"><span class="pre">ARCH=arm64</span></code>, <code class="docutils literal notranslate"><span class="pre">adi_zynqmp_defconfig</span></code>, raw <code class="docutils literal notranslate"><span class="pre">Image</span></code>.</p></li>
+</ul>
+<p>Each build extracts verified archives into a private staging directory and
+uses <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">O=&lt;separate-build-directory&gt;</span></code> with fixed build identity/timestamp
+variables; bit-for-bit reproducibility across host utility versions is not
+claimed.</p>
+</section>
+<section id="artifact-contract-v1">
+<h2>Artifact contract v1<a class="headerlink" href="#artifact-contract-v1" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">OUTPUT/artifacts.json</span></code> is the only discovery interface — never search build
+directories or guess image names.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"schema_version"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"platform"</span><span class="p">:</span><span class="w"> </span><span class="s2">"zynq"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"kernel_image"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/absolute/output/zynq/image-&lt;generation&gt;/uImage"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"sha256"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;64 lowercase hex&gt;"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"provenance"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"release"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2023_R2"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"source"</span><span class="p">:</span><span class="w">    </span><span class="p">{</span><span class="nt">"url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"sha256"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"commit"</span><span class="p">:</span><span class="w"> </span><span class="s2">"86d6146..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"ref"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2023_R2"</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"toolchain"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"sha256"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"12.2.0"</span><span class="p">,</span><span class="w"> </span><span class="nt">"cross_compile"</span><span class="p">:</span><span class="w"> </span><span class="s2">"arm-linux-gnueabi-"</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"arch"</span><span class="p">:</span><span class="w"> </span><span class="s2">"arm"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"defconfig"</span><span class="p">:</span><span class="w"> </span><span class="s2">"zynq_xcomm_adv7511_defconfig"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"packaging"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uImage"</span><span class="p">,</span><span class="w"> </span><span class="nt">"load_address"</span><span class="p">:</span><span class="w"> </span><span class="mi">32768</span><span class="p">,</span><span class="w"> </span><span class="nt">"entry_address"</span><span class="p">:</span><span class="w"> </span><span class="mi">32768</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"builder_sha256"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;helper file checksum&gt;"</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>For ZynqMP: <code class="docutils literal notranslate"><span class="pre">platform:</span> <span class="pre">zynqmp</span></code>, format <code class="docutils literal notranslate"><span class="pre">Image</span></code>, <code class="docutils literal notranslate"><span class="pre">arch:</span> <span class="pre">arm64</span></code>,
+<code class="docutils literal notranslate"><span class="pre">adi_zynqmp_defconfig</span></code>, <code class="docutils literal notranslate"><span class="pre">aarch64-linux-</span></code>, both addresses <code class="docutils literal notranslate"><span class="pre">null</span></code>. SHA-256 always
+covers the final packaged image. Image paths are local to the build host;
+consumers transferring artifacts must copy the image and set their own path.</p>
+</section>
+<section id="cache-and-concurrency">
+<h2>Cache and concurrency<a class="headerlink" href="#cache-and-concurrency" title="Link to this heading"></a></h2>
+<p>Archives are content-addressed and rehashed on every reuse; a corrupt entry
+fails closed — remove the named archive to retry. Downloads are renamed into
+place only after checksum verification and extracted with Python’s safe data
+filter; extracted trees are never cached. Use a private cache/output directory
+(checksums are integrity checks, not authentication). A per-output flock
+serializes builds and a per-archive flock serializes downloads. Completed
+images get new generation directories; a single atomic rename publishes the
+manifest after validation, so old generations stay valid for existing readers,
+including during <code class="docutils literal notranslate"><span class="pre">--force</span></code> rebuilds. There is no garbage collection. Do not
+rely on these locks on filesystems without POSIX flock/rename semantics.</p>
+</section>
+<section id="using-artifacts-with-pyadi-dt">
+<h2>Using artifacts with pyadi-dt<a class="headerlink" href="#using-artifacts-with-pyadi-dt" title="Link to this heading"></a></h2>
+<p>Build and strictly verify both platforms without a board:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">set</span><span class="w"> </span>-e
+<span class="k">for</span><span class="w"> </span>platform<span class="w"> </span><span class="k">in</span><span class="w"> </span>zynq<span class="w"> </span>zynqmp<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>make<span class="w"> </span>sdk-build<span class="w"> </span><span class="nv">KERNEL_RELEASE</span><span class="o">=</span>2026_R1<span class="w"> </span><span class="nv">KERNEL_PLATFORM</span><span class="o">=</span><span class="s2">"</span><span class="nv">$platform</span><span class="s2">"</span><span class="w"> </span><span class="nv">KERNEL_JOBS</span><span class="o">=</span><span class="m">4</span>
+<span class="w">  </span>python3<span class="w"> </span>scripts/build-kernel.py<span class="w"> </span>--release<span class="w"> </span>2026_R1<span class="w"> </span>--platform<span class="w"> </span><span class="s2">"</span><span class="nv">$platform</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output<span class="w"> </span><span class="s2">"artifacts/2026_R1/</span><span class="nv">$platform</span><span class="s2">"</span><span class="w"> </span>--verify
+<span class="k">done</span>
+</pre></div>
+</div>
+<p>pyadi-dt spells the 2026 release differently:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>pyadi-dt <code class="docutils literal notranslate"><span class="pre">ADIDT_CIM_RELEASE</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">KERNEL_RELEASE</span></code> / <code class="docutils literal notranslate"><span class="pre">--release</span></code></p></th>
+<th class="head"><p>Linux source</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">2023_R2</span></code> (default)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2023_R2</span></code></p></td>
+<td><p>branch 2023_R2, frozen commit</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">2026-R1</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2026_R1</span></code></p></td>
+<td><p>tag xlnx_2026.1.0, frozen commit</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Then export from the same workspace, only for the platforms actually built:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ADIDT_CIM_RELEASE</span><span class="o">=</span><span class="m">2026</span>-R1
+<span class="nb">export</span><span class="w"> </span><span class="nv">ADIDT_KERNEL_ARTIFACTS_ZYNQ</span><span class="o">=</span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/artifacts/2026_R1/zynq/artifacts.json"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">ADIDT_KERNEL_ARTIFACTS_ZYNQMP</span><span class="o">=</span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/artifacts/2026_R1/zynqmp/artifacts.json"</span>
+</pre></div>
+</div>
+<p>The consumer reads the manifest (schema, platform, local image, checksum,
+source provenance) and fails on a wrong release rather than falling back.
+pyadi-dt’s <code class="docutils literal notranslate"><span class="pre">.github/scripts/prepare_cim_kernel.py</span></code> automates
+init → build → export; see its
+<a class="icon link reference external" href="https://github.com/analogdevicesinc/pyadi-dt/blob/main/doc/source/developer/hardware_ci.rst" target="_blank">hardware CI guide</a>.</p>
+</section>
+<section id="verification">
+<h2>Verification<a class="headerlink" href="#verification" title="Link to this heading"></a></h2>
+<p>Fast offline tests (no network, no cross-compiler):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CIM_BIN</span><span class="o">=</span>/path/to/cim<span class="w"> </span>python3<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>discover<span class="w"> </span>-s<span class="w"> </span>tests<span class="w"> </span>-v
+</pre></div>
+</div>
+<p>With cim available the tests also generate a real workspace Makefile and check
+all four release/platform overrides, default isolation and custom output;
+without it that case is skipped. Fixture tests prove contracts, not
+cross-compilation; a validated real build proves artifact production, not
+board boot or hardware qualification.</p>
+</section>
+</section>
+
+
+          </div>
+              <div class="related">
+                &nbsp;
+    <a href="arm-trusted-firmware.html" title="Previous document (Alt+Shift+LeftArrow)" class="prev">arm-trusted-firmware</a>
+    <a href="../repository.html" title="Next document (Alt+Shift+RightArrow)" class="next">Repository</a>
+              </div>
+          
+        </div>
+      </div>
+  </div>
+
+  <label id="cancel-area-show-toc" for="input-show-toc"></label>
+  <label id="cancel-area-show-localtoc" for="input-show-localtoc"></label>
+    <footer>
+      &#169;2026, Analog Devices, Inc
+      
+      |
+      Made with <a href="https://www.sphinx-doc.org/">Sphinx</a>
+      &amp; <a href="https://github.com/analogdevicesinc/doctools">Doctools</a>
+      
+    </footer>
+  </body>
+</html>
