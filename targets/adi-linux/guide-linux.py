@@ -32,7 +32,7 @@ def ask(label, default, validate, choices=None):
         if value.lower() in ("q", "quit", "cancel"):
             raise EOFError
         if value in ("?", "list"):
-            print("Available: " + ", ".join(choices) if choices else f"Default: {default}")
+            print("Available: " + "\n - ".join(choices) if choices else f"Default: {default}")
             continue
         value = value or default
         if choices and value.isdecimal() and 1 <= int(value) <= len(choices):
@@ -55,7 +55,7 @@ def ask_dts(release, platform, dts, hdl_project):
     if fallback:
         print(f"(no boot_pairings_{release.lower()}.csv; choices come from {path.name})")
     default = dts if dts in choices else "none"
-    return ask("[Step 2b/6] Select devicetree (or none)", default, str, ["none"] + choices).replace("none", "")
+    return ask("[Step 2b/6] Select devicetree (or none or ? for list)", default, str, ["none"] + choices).replace("none", "")
 
 
 def main(argv=None):
