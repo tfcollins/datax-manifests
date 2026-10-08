@@ -37,6 +37,18 @@ archives into ``~/.cache/cim/adi-linux`` (rehashed on every reuse); a
 rebuild with the same inputs is a no-op. ``--verify`` prints only the
 absolute ``artifacts.json`` path on success.
 
+To also get the board's devicetree, name it (or look it up from the HDL
+project in the release's boot-pairings map):
+
+.. code-block:: bash
+
+   make list-dts HDL_PROJECT=jupiter_sdr
+   make sdk-build KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynqmp KERNEL_DTS=zynqmp-jupiter-sdr
+
+The artifacts then live in ``artifacts/2026_R1/zynqmp/zynqmp-jupiter-sdr/``
+with ``system.dtb`` next to ``Image`` and a ``devicetree`` entry in
+``artifacts.json``.
+
 Hand the manifests to pyadi-dt from the same shell:
 
 .. code-block:: bash

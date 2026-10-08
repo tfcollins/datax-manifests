@@ -2,6 +2,7 @@
 """Pinned ADI kernel builder. Linux x86_64, Python >= 3.11 (stdlib only)."""
 import argparse
 import contextlib
+import csv
 import fcntl
 import hashlib
 import json
@@ -41,6 +42,84 @@ TARGETS = {
                "image": "Image", "output": "Image", "triple": "aarch64-linux",
                "toolchain_sha256": "0aebb71e8ab23738e21bbceb48ac7f72976b84c9619a9e1309c3eabd44451ba9"},
 }
+# Kuiper SD-card names for the flattened devicetree of each platform.
+DTB_NAME = {"zynq": "devicetree.dtb", "zynqmp": "system.dtb"}
+# FPGA_Type column of the boot-pairings CSV -> adi-linux platform (others are
+# listed but cannot be built by this helper).
+PAIRING_PLATFORM = {"zynq": "zynq", "zynqu": "zynqmp"}
+DTB_MAGIC = b"\xd0\x0d\xfe\xed"
+
+
+def pairings_path(release):
+    """boot_pairings_<release>.csv next to this script, falling back to the newest."""
+    here = Path(__file__).resolve().parent
+    exact = here / f"boot_pairings_{release.lower()}.csv"
+    if exact.exists():
+        return exact, False
+    candidates = sorted(here.glob("boot_pairings_*.csv"))
+    if not candidates:
+        raise ValueError("No boot_pairings_*.csv next to " + str(here))
+    return candidates[-1], True
+
+
+def load_pairings(release):
+    """Rows of the DTS <-> HDL project map, each with a 'platform' (or None)."""
+    path, fallback = pairings_path(release)
+    rows = []
+    with open(path, newline="") as stream:
+        for row in csv.DictReader(stream):
+            row = {key.strip(): value.strip() for key, value in row.items() if key}
+            row["platform"] = PAIRING_PLATFORM.get(row["FPGA_Type"])
+            rows.append(row)
+    return rows, path, fallback
+
+
+def find_dts(rows, hdl_project=None, platform=None, dts=None):
+    """Rows matching the HDL project and/or platform (exact DTS wins)."""
+    hits = rows
+    if dts:
+        hits = [r for r in hits if r["DTS"] == dts]
+    if hdl_project:
+        hits = [r for r in hits if r["HDL_Project"] == hdl_project]
+    if platform:
+        hits = [r for r in hits if r["platform"] == platform]
+    return hits
+
+
+def resolve_dts(release, platform, dts=None, hdl_project=None):
+    """Turn --dts/--hdl-project into one DTS name, or raise with the choices."""
+    if dts and dts != "auto":
+        return dts
+    rows, path, _ = load_pairings(release)
+    if not hdl_project:
+        raise ValueError("--dts auto needs --hdl-project (or pass --dts <name>)")
+    hits = find_dts(rows, hdl_project=hdl_project)
+    if not hits:
+        raise ValueError(f"No devicetree in {path.name} for HDL project '{hdl_project}'; pass --dts <name>")
+    others = sorted({r["platform"] or r["FPGA_Type"] for r in hits if r["platform"] != platform})
+    hits = [r for r in hits if r["platform"] == platform]
+    if not hits:
+        buildable = any(o in TARGETS for o in others)
+        raise ValueError(f"HDL project '{hdl_project}' is a {', '.join(others)} design in {path.name}, not {platform}"
+                         + (f"; set KERNEL_PLATFORM={others[0]}" if buildable else " (not buildable by adi-linux)"))
+    if len(hits) > 1:
+        names = ", ".join(r["DTS"] for r in hits)
+        raise ValueError(f"HDL project '{hdl_project}' has several devicetrees: {names}; pass --dts <name>")
+    return hits[0]["DTS"]
+
+
+def dts_source(source, arch, dts):
+    """Where the .dts lives in this kernel tree: dts/xilinx/ (6.12+) or dts/ root (6.1)."""
+    for sub in ("xilinx", ""):
+        if (source / "arch" / arch / "boot" / "dts" / sub / (dts + ".dts")).exists():
+            return sub
+    raise ValueError(f"Devicetree source {dts}.dts not found under arch/{arch}/boot/dts in this kernel")
+
+
+def validate_dtb(path):
+    data = path.read_bytes()
+    if len(data) < 40 or data[:4] != DTB_MAGIC or struct.unpack(">I", data[4:8])[0] != len(data):
+        raise ValueError("Invalid flattened devicetree blob")
 
 
 def digest(path):
@@ -121,17 +200,31 @@ def validate_image(path, name):
             raise ValueError("Invalid ARM zImage payload")
 
 
-def validate_manifest(path, name, release="2023_R2"):
+def check_generation_path(path, artifact):
+    # Manifest may reference only a generation immediately below its directory.
+    if not artifact.is_absolute() or artifact.is_symlink() or artifact.resolve().parent.parent != path.parent.resolve():
+        raise ValueError("Unsafe artifact path")
+
+
+def validate_manifest(path, name, release="2023_R2", dts=None):
     data = json.loads(path.read_text())
     if data["schema_version"] != 1 or data["platform"] != name or data["provenance"] != provenance(name, release):
         raise ValueError("Artifact provenance mismatch")
     image = Path(data["kernel_image"])
-    # Manifest may reference only a generation immediately below its directory.
-    if not image.is_absolute() or image.is_symlink() or image.resolve().parent.parent != path.parent.resolve():
-        raise ValueError("Unsafe artifact path")
+    check_generation_path(path, image)
     if image.name != TARGETS[name]["output"] or digest(image) != data["sha256"]:
         raise ValueError("Artifact checksum mismatch")
     validate_image(image, name)
+    tree = data.get("devicetree")
+    if dts and (tree is None or tree.get("dts") != dts):
+        raise ValueError(f"Artifacts were built {'without a devicetree' if tree is None else 'for ' + tree.get('dts', '?')}, "
+                         f"not {dts}; use a separate --output or --force")
+    if tree is not None:
+        dtb = Path(tree["path"])
+        check_generation_path(path, dtb)
+        if dtb.parent != image.parent or dtb.name != DTB_NAME[name] or digest(dtb) != tree["sha256"]:
+            raise ValueError("Devicetree checksum mismatch")
+        validate_dtb(dtb)
     return data
 
 
@@ -140,73 +233,171 @@ def run(command, env):
     subprocess.run(list(map(str, command)), check=True, env=env, stdout=sys.stderr)
 
 
-def build(name, output, cache, jobs, force=False, release="2023_R2"):
+@contextlib.contextmanager
+def configured_tree(name, release, cache, workdir):
+    """Pinned source + toolchain extracted into workdir, defconfig applied.
+
+    Yields (source_dir, make_command, env). Never trusts a mutable extracted
+    cache: every call extracts the verified archives afresh.
+    """
+    spec = provenance(name, release)
+    source_tar = download(spec["source"], cache)
+    tools_tar = download(spec["toolchain"], cache)
+    work = Path(workdir)
+    extract(source_tar, work / "source")
+    extract(tools_tar, work / "tools")
+    source = work / "source" / ("linux-" + spec["source"]["commit"])
+    compilers = list((work / "tools").rglob(spec["toolchain"]["cross_compile"] + "gcc"))
+    if len(compilers) != 1:
+        raise ValueError("Toolchain compiler missing or ambiguous")
+    cross = str(compilers[0])[:-3]
+    env = {key: value for key, value in os.environ.items()
+           if key in ("HOME", "PATH", "TMPDIR")}
+    env.update(LC_ALL="C", KBUILD_BUILD_USER="cim", KBUILD_BUILD_HOST="cim",
+               KBUILD_BUILD_TIMESTAMP="Thu Jan 1 00:00:00 UTC 1970",
+               KBUILD_BUILD_VERSION="1", SOURCE_DATE_EPOCH="0")
+    target = TARGETS[name]
+    command = ["make", "-C", source, f"O={work / 'build'}", f"ARCH={target['arch']}", f"CROSS_COMPILE={cross}"]
+    run(command + [target["defconfig"]], env)
+    yield source, command, env
+
+
+def build_dtbs(name, release, dts_names, output, cache, jobs):
+    """Compile devicetrees only (no kernel image): output/<dts>/<DTB_NAME> each.
+
+    Much cheaper than a kernel build; used to iterate on a devicetree and by
+    the test-suite to prove every CSV row compiles.
+    """
+    output = output.resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    target = TARGETS[name]
+    results = {}
+    with tempfile.TemporaryDirectory(prefix=".dtb-", dir=output) as temporary, \
+            configured_tree(name, release, cache, temporary) as (source, command, env):
+        work = Path(temporary)
+        targets = {}
+        for dts in dts_names:
+            sub = dts_source(source, target["arch"], dts)
+            targets[dts] = (sub, (sub + "/" if sub else "") + dts + ".dtb")
+        run(command + [f"-j{jobs}"] + [t for _, t in targets.values()], env)
+        for dts, (sub, _) in targets.items():
+            built = work / "build" / "arch" / target["arch"] / "boot" / "dts" / sub / (dts + ".dtb")
+            validate_dtb(built)
+            dest = output / dts / DTB_NAME[name]
+            dest.parent.mkdir(exist_ok=True)
+            shutil.copyfile(built, dest)
+            results[dts] = dest
+    return results
+
+
+def build(name, output, cache, jobs, force=False, release="2023_R2", dts=None):
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     manifest = output / "artifacts.json"
     with lock(output / ".build.lock"):
         if manifest.exists() and not force:
-            validate_manifest(manifest, name, release)
+            validate_manifest(manifest, name, release, dts)
             return manifest
         spec = provenance(name, release)
-        source_tar = download(spec["source"], cache)
-        tools_tar = download(spec["toolchain"], cache)
-        # Never trust a mutable extracted source/toolchain cache. Extract verified
-        # archives into a new private directory on every actual build.
-        with tempfile.TemporaryDirectory(prefix=".build-", dir=output) as temporary:
+        with tempfile.TemporaryDirectory(prefix=".build-", dir=output) as temporary, \
+                configured_tree(name, release, cache, temporary) as (source, command, env):
             work = Path(temporary)
-            extract(source_tar, work / "source")
-            extract(tools_tar, work / "tools")
-            source = work / "source" / ("linux-" + spec["source"]["commit"])
-            compilers = list((work / "tools").rglob(spec["toolchain"]["cross_compile"] + "gcc"))
-            if len(compilers) != 1:
-                raise ValueError("Toolchain compiler missing or ambiguous")
-            cross = str(compilers[0])[:-3]
-            env = {key: value for key, value in os.environ.items()
-                   if key in ("HOME", "PATH", "TMPDIR")}
-            env.update(LC_ALL="C", KBUILD_BUILD_USER="cim", KBUILD_BUILD_HOST="cim",
-                       KBUILD_BUILD_TIMESTAMP="Thu Jan 1 00:00:00 UTC 1970",
-                       KBUILD_BUILD_VERSION="1", SOURCE_DATE_EPOCH="0")
             target = TARGETS[name]
-            command = ["make", "-C", source, f"O={work / 'build'}", f"ARCH={target['arch']}", f"CROSS_COMPILE={cross}"]
-            run(command + [target["defconfig"]], env)
             run(command + [f"-j{jobs}", target["image"]], env)
             payload = (work / "build" / "arch" / target["arch"] / "boot" / target["image"]).read_bytes()
             staged = work / target["output"]
             staged.write_bytes(uimage(payload, release) if name == "zynq" else payload)
             validate_image(staged, name)
+            staged_dtb = None
+            if dts:
+                sub = dts_source(source, target["arch"], dts)
+                dtb_target = (sub + "/" if sub else "") + dts + ".dtb"
+                run(command + [f"-j{jobs}", dtb_target], env)
+                staged_dtb = work / DTB_NAME[name]
+                shutil.copyfile(work / "build" / "arch" / target["arch"] / "boot" / "dts" / sub / (dts + ".dtb"), staged_dtb)
+                validate_dtb(staged_dtb)
             # Immutable generations keep existing readers valid during rebuild.
             generation = Path(tempfile.mkdtemp(prefix="image-", dir=output))
             image = generation / target["output"]
             os.replace(staged, image)
             data = {"schema_version": 1, "platform": name,
                     "kernel_image": str(image), "sha256": digest(image), "provenance": spec}
+            if staged_dtb is not None:
+                dtb = generation / DTB_NAME[name]
+                os.replace(staged_dtb, dtb)
+                data["devicetree"] = {"dts": dts, "path": str(dtb), "sha256": digest(dtb)}
             staged_manifest = work / "artifacts.json"
             staged_manifest.write_text(json.dumps(data, indent=2) + "\n")
             os.replace(staged_manifest, manifest)
-        validate_manifest(manifest, name, release)
+        validate_manifest(manifest, name, release, dts)
     return manifest
+
+
+def list_dts(release, platform=None, hdl_project=None):
+    rows, path, fallback = load_pairings(release)
+    if fallback:
+        print(f"note: no boot_pairings_{release.lower()}.csv; using {path.name}", file=sys.stderr)
+    hits = find_dts(rows, hdl_project=hdl_project, platform=platform)
+    if platform is None and hdl_project is not None:
+        hits = find_dts(rows, hdl_project=hdl_project)
+    print(f"{'DTS':<70} {'HDL_PROJECT':<48} PLATFORM")
+    for row in hits:
+        plat = row["platform"] or f"{row['FPGA_Type']} (not buildable here)"
+        print(f"{row['DTS']:<70} {row['HDL_Project']:<48} {plat}")
+    if not hits:
+        print("(no matching rows)")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--platform", required=True, choices=TARGETS)
+    parser.add_argument("--platform", choices=TARGETS, default="zynq")
     parser.add_argument("--release", choices=RELEASES, default="2023_R2")
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--output", type=Path, help="Artifact directory (required unless --list-dts); "
+                        "with --dts the artifacts go to OUTPUT/<dts>")
     parser.add_argument("--cache", type=Path, default=Path.home() / ".cache/cim/adi-linux")
     parser.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
     parser.add_argument("--force", action="store_true", help="Rebuild; leave old artifacts intact on failure")
     parser.add_argument("--verify", action="store_true", help="Offline validation only; no download/build")
+    parser.add_argument("--dts", default="", help="Devicetree to build alongside the kernel: a DTS name "
+                        "from the kernel tree, or 'auto' to look it up from --hdl-project (default: kernel only)")
+    parser.add_argument("--hdl-project", default="", help="HDL project (boot_pairings CSV) for --dts auto / --list-dts")
+    parser.add_argument("--list-dts", action="store_true", help="List devicetrees from the boot-pairings CSV and exit")
+    parser.add_argument("--dtb-only", action="store_true", help="Compile only the devicetree(s) in --dts "
+                        "(comma-separated, or 'all' for every CSV row of the platform) to OUTPUT/<dts>/; no kernel")
     args = parser.parse_args()
     if args.jobs < 1:
         parser.error("--jobs must be positive")
+    if args.list_dts:
+        list_dts(args.release, None if args.hdl_project else args.platform, args.hdl_project or None)
+        return
+    if args.output is None:
+        parser.error("--output is required")
+    if args.dtb_only:
+        if not args.dts:
+            parser.error("--dtb-only needs --dts <name[,name...]|all>")
+        if args.dts == "all":
+            rows, _, _ = load_pairings(args.release)
+            # several HDL variants can share one devicetree: build each DTS once
+            names = list(dict.fromkeys(r["DTS"] for r in find_dts(rows, platform=args.platform)))
+        else:
+            names = [resolve_dts(args.release, args.platform, n, args.hdl_project or None) for n in args.dts.split(",")]
+        if platform.system() != "Linux" or platform.machine() != "x86_64":
+            parser.error("Pinned toolchains require Linux x86_64")
+        for dest in build_dtbs(args.platform, args.release, names, args.output, args.cache.resolve(), args.jobs).values():
+            print(dest)
+        return
+    dts = resolve_dts(args.release, args.platform, args.dts or None, args.hdl_project or None) if (args.dts or args.hdl_project) else None
+    if dts:
+        # Devicetree artifacts live one level below the kernel-only layout so
+        # several devicetrees for one platform never share a manifest.
+        args.output = args.output / dts
     if args.verify:
-        validate_manifest(args.output.resolve() / "artifacts.json", args.platform, args.release)
+        validate_manifest(args.output.resolve() / "artifacts.json", args.platform, args.release, dts)
         print(args.output.resolve() / "artifacts.json")
         return
     if platform.system() != "Linux" or platform.machine() != "x86_64":
         parser.error("Pinned toolchains require Linux x86_64")
-    print(build(args.platform, args.output, args.cache.resolve(), args.jobs, args.force, args.release))
+    print(build(args.platform, args.output, args.cache.resolve(), args.jobs, args.force, args.release, dts))
 
 
 if __name__ == "__main__":

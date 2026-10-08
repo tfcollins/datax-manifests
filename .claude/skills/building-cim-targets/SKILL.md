@@ -35,7 +35,7 @@ cd <dir> && cim makefile
 | `hdl-boot` | `make boot-dry-run HDL_PROJECT=jupiter_sdr`, `make guide` | `make sdk-build HDL_PROJECT=jupiter_sdr` (u-boot → bl31 → Vivado → BOOT.BIN) |
 | `u-boot-xlnx` | `make uboot-list`, `make uboot-dry-run UBOOT_BOARD=…`, `make uboot-check-deps` | `make sdk-build UBOOT_BOARD=zcu102 UBOOT_RELEASE=hdl_2026_r1` → `u-boot-xlnx/u-boot.elf` |
 | `arm-trusted-firmware` | `make atf-dry-run` | `make sdk-build ATF_PLAT=zynqmp ATF_RELEASE=hdl_2026_r1` → `arm-trusted-firmware/bl31.elf` |
-| `adi-linux` | `make list-combos`, `make guide-dry-run` | `make sdk-build KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynqmp KERNEL_JOBS=4` |
+| `adi-linux` | `make list-combos`, `make list-dts [HDL_PROJECT=x]`, `make guide-dry-run` | `make sdk-build KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynqmp [KERNEL_DTS=zynqmp-jupiter-sdr] KERNEL_JOBS=4` → `artifacts/<rel>/<plat>[/<dts>]/` |
 
 Dry-run before any real build: `bash scripts/build-hdl.sh … --dry-run`
 prints the exact tool env + make + BOOT.BIN commands.
@@ -53,6 +53,10 @@ prints the exact tool env + make + BOOT.BIN commands.
 - u-boot presets: Xilinx boards follow the release tag; ADI boards pin their
   own branches (`jupiter-sdr`, `master`, `pluto`). No preset → set
   `UBOOT_REF`/`UBOOT_DEFCONFIG`/`UBOOT_DEVICE_TREE` or `BOOT_BIN_UBOOT=download`.
+- `KERNEL_DTS` is the devicetree key; `HDL_PROJECT` only looks it up in
+  `boot_pairings_<release>.csv` and errors when a project has several (pick
+  one). CSV platform `zynqu` = `zynqmp`; versal/microblaze/intel rows can't be
+  built by adi-linux.
 - A real Vivado build is 30 min–2 h: run it in the background (watch-build)
   and prefer the hdl-dev-2 runner (`workflow_dispatch` with `build: true`).
 
