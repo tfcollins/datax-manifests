@@ -14,7 +14,8 @@ preserved without pruning.
 | `os-dependencies.yml` | Host packages (Ubuntu 24.04 recipe) |
 | `build-kernel.py` | Pinned downloader/builder/verifier; copied to `scripts/build-kernel.py` |
 | `guide-linux.py` | Offline discovery and guided wizard; copied to `scripts/guide-linux.py` |
-| `linux.mk` | `make guide`, `make list-combos`, … helper targets |
+| `linux.mk` | `make guide`, `make list-combos`, `make list-dts`, … helper targets |
+| `boot_pairings_2026_r1.csv` | Devicetree ↔ HDL project map for the 2026_R1 Kuiper release; copied to `scripts/` |
 
 ## Requirements
 
@@ -78,6 +79,46 @@ python3 scripts/guide-linux.py --dry-run --release 2026_R1 --platform zynq --job
 python3 scripts/guide-linux.py --dry-run --release 2026_R1 --platform zynqmp --jobs 4
 ```
 
+## Devicetree
+
+A flattened devicetree can be built with the kernel from the same pinned
+source tree. `KERNEL_DTS` names the `.dts` (without extension) as it appears
+under `arch/<arch>/boot/dts[/xilinx]` in the kernel; `auto` looks it up from
+`HDL_PROJECT` in `boot_pairings_<release>.csv`, the per-project map ADI
+publishes with each Kuiper release:
+
+```bash
+make list-dts                                   # every zynq/zynqmp devicetree in the CSV
+make list-dts HDL_PROJECT=fmcomms2_zcu102       # the ones for one HDL project
+make sdk-build KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynqmp KERNEL_DTS=zynqmp-jupiter-sdr
+make sdk-build KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynq   HDL_PROJECT=adv7511_zed KERNEL_DTS=auto
+```
+
+`KERNEL_DTS` is the primary selector; `HDL_PROJECT` is a lookup helper, because
+the map is many-to-many — `fmcomms2_zcu102` serves both the fmcomms2-3 and
+fmcomms4 devicetrees, so `auto` fails with the candidates when a project has
+more than one and you pick explicitly. A DTS that is not in the CSV is still
+built if the kernel tree has it; the CSV is a convenience, not a gate. Rows
+for Versal, MicroBlaze and Intel SoC designs are listed but cannot be built
+here (`adi-linux` is Zynq / ZynqMP only). Only the 2026_R1 CSV exists; other
+releases fall back to it with a note.
+
+With a devicetree selected the artifacts land in
+`<KERNEL_OUTPUT>/<dts>/` — `artifacts/2026_R1/zynqmp/zynqmp-jupiter-sdr/` by
+default — so several devicetrees for one platform never share a manifest.
+The blob is named the way Kuiper expects it on the boot partition
+(`devicetree.dtb` for Zynq, `system.dtb` for ZynqMP) and `artifacts.json`
+gains:
+
+```json
+"devicetree": {"dts": "zynqmp-jupiter-sdr", "path": "/abs/.../image-xxxx/system.dtb", "sha256": "..."}
+```
+
+`--verify` (and a cached rebuild) checks the devicetree hash and header too,
+and a kernel-only manifest does not satisfy a request with `KERNEL_DTS` set.
+The CSV's `HDL_Location` column names the matching bitstream directory on the
+Kuiper SD card; that side is produced by the [`hdl`](../hdl/README.md) target.
+
 ## Guided build (like the HDL target)
 
 After `cim makefile`:
@@ -89,7 +130,8 @@ make guide          # interactive wizard
 make guide-dry-run  # wizard that stops before confirmation
 ```
 
-The wizard selects release, platform, job count and output folder, then prints
+The wizard selects release, platform, devicetree (from the CSV, or none), job
+count and output folder, then prints
 shell-quoted build and offline verification commands. Enter accepts a default;
 `?` or `list` shows choices; at the final prompt explicitly choose `build` or
 `verify` — the default is **no**. `q`, `cancel`, `quit`, Ctrl-C or EOF exit
@@ -102,8 +144,8 @@ python3 scripts/guide-linux.py --verify --release 2026_R1 --platform zynqmp --ou
 python3 scripts/guide-linux.py --build  --release 2023_R2 --platform zynq --jobs 4
 ```
 
-Options: `-i/--interactive`, `-l/--list`, `--release`, `--platform`,
-`-j/--jobs`, `--output`, at most one of `--dry-run | --build | --verify`,
+Options: `-i/--interactive`, `-l/--list`, `--release`, `--platform`, `--dts`,
+`--hdl-project`, `-j/--jobs`, `--output`, at most one of `--dry-run | --build | --verify`,
 `-h/--help`. The guide passes arguments directly (no shell); paths with spaces
 are preserved, but upstream kernel make does not support spaces in a fresh
 build — choose a space-free output path. The guide never changes
@@ -118,7 +160,8 @@ python3 targets/adi-linux/build-kernel.py --release 2026_R1 --platform zynq \
   --output /absolute/output/2026_R1/zynq --jobs 4
 ```
 
-`--platform` and `--output` are required; `--release` defaults to `2023_R2`;
+`--platform` and `--output` are required (`--list-dts [--hdl-project X]`
+needs neither); `--dts <name|auto>` adds the devicetree; `--release` defaults to `2023_R2`;
 standalone `--jobs` defaults to the host CPU count. Exit zero means the
 manifest and image were validated. Stdout contains **only** the absolute
 `artifacts.json` path; logs go to stderr. `--verify` validates offline without

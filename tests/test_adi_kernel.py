@@ -52,6 +52,63 @@ class KernelTests(unittest.TestCase):
         manifest.write_text(json.dumps(data))
         return manifest, path, data
 
+    def fdt(self, size=64):
+        # minimal flattened devicetree: magic + totalsize, zero-padded
+        return b"\xd0\x0d\xfe\xed" + struct.pack(">I", size) + bytes(size - 8)
+
+    def test_devicetree_in_manifest(self):
+        manifest, path, data = self.artifact("zynqmp")
+        dtb = path.parent / "system.dtb"
+        dtb.write_bytes(self.fdt())
+        data["devicetree"] = {"dts": "zynqmp-jupiter-sdr", "path": str(dtb), "sha256": kernel.digest(dtb)}
+        manifest.write_text(json.dumps(data))
+        self.assertEqual(kernel.validate_manifest(manifest, "zynqmp", dts="zynqmp-jupiter-sdr")["devicetree"]["dts"],
+                         "zynqmp-jupiter-sdr")
+        kernel.validate_manifest(manifest, "zynqmp")                      # dts unspecified: still valid
+        with self.assertRaisesRegex(ValueError, "not zynqmp-other"):
+            kernel.validate_manifest(manifest, "zynqmp", dts="zynqmp-other")
+        dtb.write_bytes(self.fdt(72))
+        with self.assertRaisesRegex(ValueError, "Devicetree checksum"):
+            kernel.validate_manifest(manifest, "zynqmp", dts="zynqmp-jupiter-sdr")
+        data["devicetree"]["sha256"] = kernel.digest(dtb)
+        dtb.write_bytes(b"not a dtb" + bytes(60))
+        data["devicetree"]["sha256"] = kernel.digest(dtb)
+        manifest.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "Invalid flattened devicetree"):
+            kernel.validate_manifest(manifest, "zynqmp")
+        # kernel-only artifacts cannot satisfy a devicetree request
+        manifest2, _, data2 = self.artifact("zynq")
+        with self.assertRaisesRegex(ValueError, "built without a devicetree"):
+            kernel.validate_manifest(manifest2, "zynq", dts="zynq-zed-adv7511")
+
+    def test_dts_lookup_table(self):
+        rows, path, fallback = kernel.load_pairings("2026_R1")
+        self.assertEqual(path.name, "boot_pairings_2026_r1.csv")
+        self.assertFalse(fallback)
+        self.assertTrue(kernel.load_pairings("2023_R2")[2])                 # falls back to the newest CSV
+        self.assertEqual({r["platform"] for r in rows if r["FPGA_Type"] == "zynqu"}, {"zynqmp"})
+        self.assertEqual(kernel.resolve_dts("2026_R1", "zynq", hdl_project="adv7511_zed"), "zynq-zed-adv7511")
+        self.assertEqual(kernel.resolve_dts("2026_R1", "zynq", dts="anything"), "anything")
+        for platform, project, message in (("zynqmp", "jupiter_sdr", "several devicetrees"),
+                                           ("zynq", "fmcomms2_zcu102", "set KERNEL_PLATFORM=zynqmp"),
+                                           ("zynq", "daq2_kcu105", "not buildable by adi-linux"),
+                                           ("zynq", "nope", "No devicetree")):
+            with self.assertRaisesRegex(ValueError, message):
+                kernel.resolve_dts("2026_R1", platform, hdl_project=project)
+        with self.assertRaisesRegex(ValueError, "needs --hdl-project"):
+            kernel.resolve_dts("2026_R1", "zynq", dts="auto")
+
+    def test_dts_source_layout(self):
+        tree = self.root / "linux"
+        for sub, name in (("xilinx", "zynq-new"), ("", "zynq-old")):
+            d = tree / "arch/arm/boot/dts" / sub
+            d.mkdir(parents=True, exist_ok=True)
+            (d / (name + ".dts")).write_text("/dts-v1/;\n")
+        self.assertEqual(kernel.dts_source(tree, "arm", "zynq-new"), "xilinx")
+        self.assertEqual(kernel.dts_source(tree, "arm", "zynq-old"), "")
+        with self.assertRaisesRegex(ValueError, "not found under arch/arm/boot/dts"):
+            kernel.dts_source(tree, "arm", "zynq-missing")
+
     def test_git_target_is_self_contained(self):
         self.assertEqual(list(HELPER.parents[1].glob("adi-linux-*-*/")), [])
         manifest = (HELPER.parent / "sdk.yml").read_text()

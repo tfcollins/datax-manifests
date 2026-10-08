@@ -3,6 +3,13 @@ variables:
   KERNEL_RELEASE: "2023_R2"
   KERNEL_PLATFORM: "zynq"
   # Keep references deferred until make so command-line overrides stay isolated.
+  # Devicetree to build with the kernel: a DTS name from the kernel tree, or
+  # "auto" to look it up from HDL_PROJECT in boot_pairings_<release>.csv.
+  # Empty = kernel only. make list-dts HDL_PROJECT=<name> shows the choices.
+  KERNEL_DTS: ""
+  HDL_PROJECT: ""
+  # Artifact dir per release/platform. With a devicetree selected the helper
+  # appends /<dts>, so two devicetrees for one platform never share a manifest.
   KERNEL_OUTPUT: "artifacts/${{ KERNEL_RELEASE }}/${{ KERNEL_PLATFORM }}"
   KERNEL_JOBS: "4"
 makefile_include:
@@ -17,8 +24,12 @@ copy_files:
   - source: build-kernel.py
     dest: scripts/build-kernel.py
     cache: false
+  - source: boot_pairings_2026_r1.csv
+    dest: scripts/boot_pairings_2026_r1.csv
+    cache: false
 build:
   - >-
     python3 scripts/build-kernel.py --release "${{ KERNEL_RELEASE }}"
     --platform "${{ KERNEL_PLATFORM }}"
     --output "${{ KERNEL_OUTPUT }}" --jobs "${{ KERNEL_JOBS }}"
+    --dts "${{ KERNEL_DTS }}" --hdl-project "${{ HDL_PROJECT }}"

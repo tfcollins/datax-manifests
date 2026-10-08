@@ -45,6 +45,19 @@ def ask(label, default, validate, choices=None):
             print(f"Invalid selection: {exc}")
 
 
+def ask_dts(release, platform, dts, hdl_project):
+    """Step 2b: pick a devicetree from the boot-pairings CSV, or none."""
+    rows, path, fallback = kernel.load_pairings(release)
+    choices = [r["DTS"] for r in kernel.find_dts(rows, platform=platform, hdl_project=hdl_project or None)]
+    if not choices:
+        print(f"No {platform} devicetrees in {path.name}" + (f" for {hdl_project}" if hdl_project else "") + "; kernel only.")
+        return ""
+    if fallback:
+        print(f"(no boot_pairings_{release.lower()}.csv; choices come from {path.name})")
+    default = dts if dts in choices else "none"
+    return ask("[Step 2b/6] Select devicetree (or none)", default, str, ["none"] + choices).replace("none", "")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Analog Devices Linux Guided Build Wizard (adi-linux)",
         epilog="No arguments: wizard on a TTY, help otherwise. Use --interactive for scripted input. q/cancel or EOF cancels without building.")
@@ -52,6 +65,8 @@ def main(argv=None):
     parser.add_argument("-l", "--list", action="store_true", help="list supported release/platform combinations offline")
     parser.add_argument("--release", choices=kernel.RELEASES, default="2023_R2")
     parser.add_argument("--platform", choices=kernel.TARGETS, default="zynq")
+    parser.add_argument("--dts", default="", help="devicetree to build with the kernel (empty: kernel only)")
+    parser.add_argument("--hdl-project", default="", help="HDL project to look the devicetree up from")
     parser.add_argument("-j", "--jobs", default="4")
     parser.add_argument("--output", help="default: artifacts/RELEASE/PLATFORM")
     action = parser.add_mutually_exclusive_group()
@@ -72,16 +87,26 @@ def main(argv=None):
         if interactive:
             print("Analog Devices Linux Guided Build Wizard (adi-linux)")
             print("Type ? or list for choices; q/cancel to cancel. Enter accepts defaults.")
-            args.release = ask("[Step 1/5] Select Linux release", args.release, str, kernel.RELEASES)
-            args.platform = ask("[Step 2/5] Select platform", args.platform, str, kernel.TARGETS)
-            args.jobs = ask("[Step 3/5] Parallel make jobs", args.jobs, jobs)
-            args.output = ask("[Step 4/5] Build output directory", args.output or f"artifacts/{args.release}/{args.platform}", output)
+            args.release = ask("[Step 1/6] Select Linux release", args.release, str, kernel.RELEASES)
+            args.platform = ask("[Step 2/6] Select platform", args.platform, str, kernel.TARGETS)
+            args.dts = ask_dts(args.release, args.platform, args.dts, args.hdl_project)
+            args.jobs = ask("[Step 3/6] Parallel make jobs", args.jobs, jobs)
+        if args.dts or args.hdl_project:
+            args.dts = kernel.resolve_dts(args.release, args.platform, args.dts or None, args.hdl_project or None)
+        default_output = f"artifacts/{args.release}/{args.platform}"
+        if interactive:
+            args.output = ask("[Step 4/6] Build output directory" + (f" (+ /{args.dts})" if args.dts else ""),
+                              args.output or default_output, output)
         args.jobs = jobs(args.jobs)
-        args.output = output(args.output or f"artifacts/{args.release}/{args.platform}")
+        args.output = output(args.output or default_output)
         command = [sys.executable, str(HELPER), "--release", args.release, "--platform", args.platform,
                    "--jobs", args.jobs, "--output", args.output]
-        print("[Step 5/5] Build Configuration Summary")
+        if args.dts:
+            command += ["--dts", args.dts]
+        print("[Step 5/6] Build Configuration Summary")
         print(f"Release: {args.release} ({kernel.RELEASES[args.release]['ref']}); Platform: {args.platform}; Jobs: {args.jobs}")
+        print(f"Devicetree: {args.dts or '(none, kernel only)'}"
+              + (f"; artifacts in {args.output}/{args.dts}" if args.dts else ""))
         print("Build command: " + shlex.join(command))
         print("Verify command: " + shlex.join(command + ["--verify"]))
         if args.dry_run:

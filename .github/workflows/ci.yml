@@ -85,6 +85,8 @@ jobs:
           cd "$RUNNER_TEMP/ws-linux"
           cim makefile
           make list-combos
+          make list-dts HDL_PROJECT=fmcomms2_zcu102 | grep -q zynqmp-zcu102-rev10-ad9361-fmcomms2-3
+          make -n sdk-build KERNEL_PLATFORM=zynqmp KERNEL_DTS=zynqmp-jupiter-sdr | grep -q -- '--dts "zynqmp-jupiter-sdr"'
           make guide-dry-run </dev/null
 
   docs:
