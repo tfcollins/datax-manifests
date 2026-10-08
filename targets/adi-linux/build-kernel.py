@@ -233,6 +233,63 @@ def run(command, env):
     subprocess.run(list(map(str, command)), check=True, env=env, stdout=sys.stderr)
 
 
+@contextlib.contextmanager
+def configured_tree(name, release, cache, workdir):
+    """Pinned source + toolchain extracted into workdir, defconfig applied.
+
+    Yields (source_dir, make_command, env). Never trusts a mutable extracted
+    cache: every call extracts the verified archives afresh.
+    """
+    spec = provenance(name, release)
+    source_tar = download(spec["source"], cache)
+    tools_tar = download(spec["toolchain"], cache)
+    work = Path(workdir)
+    extract(source_tar, work / "source")
+    extract(tools_tar, work / "tools")
+    source = work / "source" / ("linux-" + spec["source"]["commit"])
+    compilers = list((work / "tools").rglob(spec["toolchain"]["cross_compile"] + "gcc"))
+    if len(compilers) != 1:
+        raise ValueError("Toolchain compiler missing or ambiguous")
+    cross = str(compilers[0])[:-3]
+    env = {key: value for key, value in os.environ.items()
+           if key in ("HOME", "PATH", "TMPDIR")}
+    env.update(LC_ALL="C", KBUILD_BUILD_USER="cim", KBUILD_BUILD_HOST="cim",
+               KBUILD_BUILD_TIMESTAMP="Thu Jan 1 00:00:00 UTC 1970",
+               KBUILD_BUILD_VERSION="1", SOURCE_DATE_EPOCH="0")
+    target = TARGETS[name]
+    command = ["make", "-C", source, f"O={work / 'build'}", f"ARCH={target['arch']}", f"CROSS_COMPILE={cross}"]
+    run(command + [target["defconfig"]], env)
+    yield source, command, env
+
+
+def build_dtbs(name, release, dts_names, output, cache, jobs):
+    """Compile devicetrees only (no kernel image): output/<dts>/<DTB_NAME> each.
+
+    Much cheaper than a kernel build; used to iterate on a devicetree and by
+    the test-suite to prove every CSV row compiles.
+    """
+    output = output.resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    target = TARGETS[name]
+    results = {}
+    with tempfile.TemporaryDirectory(prefix=".dtb-", dir=output) as temporary, \
+            configured_tree(name, release, cache, temporary) as (source, command, env):
+        work = Path(temporary)
+        targets = {}
+        for dts in dts_names:
+            sub = dts_source(source, target["arch"], dts)
+            targets[dts] = (sub, (sub + "/" if sub else "") + dts + ".dtb")
+        run(command + [f"-j{jobs}"] + [t for _, t in targets.values()], env)
+        for dts, (sub, _) in targets.items():
+            built = work / "build" / "arch" / target["arch"] / "boot" / "dts" / sub / (dts + ".dtb")
+            validate_dtb(built)
+            dest = output / dts / DTB_NAME[name]
+            dest.parent.mkdir(exist_ok=True)
+            shutil.copyfile(built, dest)
+            results[dts] = dest
+    return results
+
+
 def build(name, output, cache, jobs, force=False, release="2023_R2", dts=None):
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -242,27 +299,10 @@ def build(name, output, cache, jobs, force=False, release="2023_R2", dts=None):
             validate_manifest(manifest, name, release, dts)
             return manifest
         spec = provenance(name, release)
-        source_tar = download(spec["source"], cache)
-        tools_tar = download(spec["toolchain"], cache)
-        # Never trust a mutable extracted source/toolchain cache. Extract verified
-        # archives into a new private directory on every actual build.
-        with tempfile.TemporaryDirectory(prefix=".build-", dir=output) as temporary:
+        with tempfile.TemporaryDirectory(prefix=".build-", dir=output) as temporary, \
+                configured_tree(name, release, cache, temporary) as (source, command, env):
             work = Path(temporary)
-            extract(source_tar, work / "source")
-            extract(tools_tar, work / "tools")
-            source = work / "source" / ("linux-" + spec["source"]["commit"])
-            compilers = list((work / "tools").rglob(spec["toolchain"]["cross_compile"] + "gcc"))
-            if len(compilers) != 1:
-                raise ValueError("Toolchain compiler missing or ambiguous")
-            cross = str(compilers[0])[:-3]
-            env = {key: value for key, value in os.environ.items()
-                   if key in ("HOME", "PATH", "TMPDIR")}
-            env.update(LC_ALL="C", KBUILD_BUILD_USER="cim", KBUILD_BUILD_HOST="cim",
-                       KBUILD_BUILD_TIMESTAMP="Thu Jan 1 00:00:00 UTC 1970",
-                       KBUILD_BUILD_VERSION="1", SOURCE_DATE_EPOCH="0")
             target = TARGETS[name]
-            command = ["make", "-C", source, f"O={work / 'build'}", f"ARCH={target['arch']}", f"CROSS_COMPILE={cross}"]
-            run(command + [target["defconfig"]], env)
             run(command + [f"-j{jobs}", target["image"]], env)
             payload = (work / "build" / "arch" / target["arch"] / "boot" / target["image"]).read_bytes()
             staged = work / target["output"]
@@ -322,6 +362,8 @@ def main():
                         "from the kernel tree, or 'auto' to look it up from --hdl-project (default: kernel only)")
     parser.add_argument("--hdl-project", default="", help="HDL project (boot_pairings CSV) for --dts auto / --list-dts")
     parser.add_argument("--list-dts", action="store_true", help="List devicetrees from the boot-pairings CSV and exit")
+    parser.add_argument("--dtb-only", action="store_true", help="Compile only the devicetree(s) in --dts "
+                        "(comma-separated, or 'all' for every CSV row of the platform) to OUTPUT/<dts>/; no kernel")
     args = parser.parse_args()
     if args.jobs < 1:
         parser.error("--jobs must be positive")
@@ -330,6 +372,20 @@ def main():
         return
     if args.output is None:
         parser.error("--output is required")
+    if args.dtb_only:
+        if not args.dts:
+            parser.error("--dtb-only needs --dts <name[,name...]|all>")
+        if args.dts == "all":
+            rows, _, _ = load_pairings(args.release)
+            # several HDL variants can share one devicetree: build each DTS once
+            names = list(dict.fromkeys(r["DTS"] for r in find_dts(rows, platform=args.platform)))
+        else:
+            names = [resolve_dts(args.release, args.platform, n, args.hdl_project or None) for n in args.dts.split(",")]
+        if platform.system() != "Linux" or platform.machine() != "x86_64":
+            parser.error("Pinned toolchains require Linux x86_64")
+        for dest in build_dtbs(args.platform, args.release, names, args.output, args.cache.resolve(), args.jobs).values():
+            print(dest)
+        return
     dts = resolve_dts(args.release, args.platform, args.dts or None, args.hdl_project or None) if (args.dts or args.hdl_project) else None
     if dts:
         # Devicetree artifacts live one level below the kernel-only layout so

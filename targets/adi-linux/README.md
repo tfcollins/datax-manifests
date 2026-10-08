@@ -114,6 +114,22 @@ gains:
 "devicetree": {"dts": "zynqmp-jupiter-sdr", "path": "/abs/.../image-xxxx/system.dtb", "sha256": "..."}
 ```
 
+To iterate on a devicetree without rebuilding the kernel, or to compile every
+CSV devicetree for a platform in one go (seconds, not minutes):
+
+```bash
+make dtb KERNEL_PLATFORM=zynqmp KERNEL_DTS=zynqmp-jupiter-sdr      # -> artifacts/.../zynqmp-jupiter-sdr/system.dtb
+make dtb KERNEL_PLATFORM=zynq KERNEL_DTS=all                        # every zynq row of the CSV
+python3 scripts/build-kernel.py --dtb-only --platform zynqmp --dts a,b,c --output dtbs
+```
+
+`--dtb-only` extracts the pinned source and toolchain, applies the platform
+defconfig and builds just the `.dtb` targets; results go to
+`<output>/<dts>/<devicetree.dtb|system.dtb>` with no `artifacts.json`.
+`tests/test_adi_devicetree.py` uses it to compile all 67 zynq and 49 zynqmp
+devicetrees of the CSV from the 2026_R1 tree (and a representative set from
+2023_R2) — run with `CIM_NETWORK=1`; CI does this on every push.
+
 `--verify` (and a cached rebuild) checks the devicetree hash and header too,
 and a kernel-only manifest does not satisfy a request with `KERNEL_DTS` set.
 The CSV's `HDL_Location` column names the matching bitstream directory on the
