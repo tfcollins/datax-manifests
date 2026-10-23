@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
+*.deb
 
 # Local cim workspaces initialized next to the manifests
 /ws-*/
@@ -7,6 +8,7 @@ __pycache__/
 
 # cim workspaces accidentally initialized inside the repo
 /test*/
+!/tests/
 .workspace
 
 # Sphinx output

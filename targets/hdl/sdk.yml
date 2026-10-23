@@ -15,9 +15,12 @@ variables:
   # BOOT_BIN_UBOOT: u-boot.elf path or "download" (ADI prebuilt for known carriers).
   # BOOT_BIN_ATF: ZynqMP/Versal only - bl31.elf path, arm-trusted-firmware source
   # dir, or "download" (clone + build; needs aarch64-linux-gnu-gcc).
+  # HDL_BITSTREAM: "source" (build using Vivado/Quartus/Radiant) or "download"
+  # (download prebuilt bitstream, XSA and boot files from ADI Kuiper deb packages).
   BUILD_BOOT_BIN: "false"
   BOOT_BIN_UBOOT: download
   BOOT_BIN_ATF: download
+  HDL_BITSTREAM: source
 
 makefile_include:
   - include hdl.mk
@@ -25,6 +28,9 @@ makefile_include:
 copy_files:
   - source: build-hdl.sh
     dest: scripts/build-hdl.sh
+    cache: false
+  - source: hdl-prebuilt.py
+    dest: scripts/hdl-prebuilt.py
     cache: false
   - source: hdl.mk
     dest: hdl.mk
@@ -49,7 +55,7 @@ build:
     bash scripts/build-hdl.sh --release "${{ HDL_RELEASE }}" --vivado "${{ VIVADO }}"
     --project "${{ HDL_PROJECT }}" --board "${{ HDL_BOARD }}" --jobs "${{ MAKE_JOBS }}"
     --dir-name "${{ DIR_NAME }}" --boot-bin "${{ BUILD_BOOT_BIN }}" --boot-bin-uboot "${{ BOOT_BIN_UBOOT }}"
-    --boot-bin-atf "${{ BOOT_BIN_ATF }}"
+    --boot-bin-atf "${{ BOOT_BIN_ATF }}" --hdl-bitstream "${{ HDL_BITSTREAM }}"
 
 clean:
   - >-
