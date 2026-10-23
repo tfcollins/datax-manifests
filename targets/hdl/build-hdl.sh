@@ -943,7 +943,7 @@ execute_build() {
                 fi
             else
                 echo -e "\n${BOLD}${CYAN}Generating BOOT.BIN with custom boot components [${boot_arch}]...${RESET}"
-                cd "${project_board_dir}"
+                cd "${project_board_dir}" || exit 1
                 eval "${boot_bin_cmd}"
             fi
         fi
