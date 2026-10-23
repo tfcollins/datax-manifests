@@ -1,0 +1,10 @@
+/* Diagrams are inlined SVG drawn with currentColor, so they follow the cosmic
+   light/dark theme instead of getting the white backing the theme gives <img>. */
+svg.datax-diagram {
+  display: block;
+  width: 100%;
+  max-width: 900px;
+  height: auto;
+  margin: 0.5rem auto 1.5rem;
+  color: inherit;
+}
