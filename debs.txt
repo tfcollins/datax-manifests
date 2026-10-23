@@ -1,0 +1,11 @@
+versal
+https://dl.cloudsmith.io/public/adi/kuiper/deb/debian/pool/trixie/main/a/ad/adi-versal-boot_2026.1.0-1/adi-versal-boot_2026.1.0-1_arm64.deb
+5bee04152cd29a66bff65a1ca6d52d72
+
+zynq
+https://dl.cloudsmith.io/public/adi/kuiper/deb/debian/pool/trixie/main/a/ad/adi-zynq-boot_2026.1.0-1/adi-zynq-boot_2026.1.0-1_armhf.deb
+8c1cc52296bfd1800449a9a67a49432d
+
+zynqmp
+https://dl.cloudsmith.io/public/adi/kuiper/deb/debian/pool/trixie/main/a/ad/adi-zynqmp-boot_2026.1.0-1/adi-zynqmp-boot_2026.1.0-1_arm64.deb
+5324252db27018ee235e939088fedf2f

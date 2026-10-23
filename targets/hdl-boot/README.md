@@ -26,6 +26,7 @@ cd ~/cim-hdl-boot && cim makefile
 make boot-dry-run HDL_PROJECT=jupiter_sdr        # show the u-boot / ATF resolution
 make sdk-build    HDL_PROJECT=jupiter_sdr        # u-boot + bl31 + Vivado + BOOT.BIN
 make sdk-build    HDL_PROJECT=fmcomms2 HDL_BOARD=zed HDL_RELEASE=hdl_2023_r2
+make sdk-build    HDL_PROJECT=fmcomms2 HDL_BOARD=zcu102 HDL_BITSTREAM=download # build u-boot/bl31 with prebuilt bitstream (no Vivado)
 ```
 
 ## Guided wizard
@@ -57,6 +58,11 @@ preset falls back to the download with a hint to set `UBOOT_REF` /
 with those variables so u-boot and ATF are built (or skipped) before the HDL.
 `BUILD_BOOT_BIN=false` or `BOOT_BIN_*=download` skip the source builds
 entirely.
+
+Additionally, `HDL_BITSTREAM=download` bypasses the local Vivado synthesis and
+instead downloads the prebuilt bitstream and XSA from ADI's Kuiper packages.
+This allows developing and building custom U-Boot and BL31 from source and
+packaging a test BOOT.BIN on machines without Vivado installed.
 
 ## How it composes
 
