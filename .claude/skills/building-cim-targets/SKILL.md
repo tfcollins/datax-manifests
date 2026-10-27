@@ -37,7 +37,24 @@ cd <dir> && cim makefile
 | `arm-trusted-firmware` | `make atf-dry-run` | `make sdk-build ATF_PLAT=zynqmp ATF_RELEASE=hdl_2026_r1` → `arm-trusted-firmware/bl31.elf` |
 | `adi-linux` | `make list-combos`, `make guide-dry-run` | `make sdk-build KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynqmp KERNEL_JOBS=4` |
 
-Dry-run before any real build: `bash scripts/build-hdl.sh … --dry-run`
+## AI Agent Fast Path (JSON Discovery & Inspection)
+
+AI agents should not attempt to drive the interactive `make guide` wizard. Instead, use structured JSON commands:
+
+- **Pre-workspace target & manifest inspection**:
+  - List all targets: `python3 scripts/manifest-tool.py --list-targets --json`
+  - Inspect target variables, defaults, docstrings, and dependencies: `python3 scripts/manifest-tool.py --target <name> --json`
+- **Workspace configuration export**:
+  - Export resolved build config & exact commands: `make config-json`
+  - In `hdl-boot`: `make boot-config-json` (exports resolved u-boot and ATF config)
+- **Matrix & tool status queries**:
+  - Supported combinations & EDA tool requirements: `make list-combos-json`
+  - Tool installation status: `make check-tools-json`
+  - Carrier boards for a project: `make list-boards-json HDL_PROJECT=<project>`
+  - Prebuilt Kuiper bitstreams/boot files: `make list-prebuilts-json`
+  - u-boot board presets: `make uboot-list-json` (in u-boot-xlnx workspace)
+
+Dry-run before any real build: `bash scripts/build-hdl.sh … --dry-run` (or `--dry-run --json`)
 prints the exact tool env + make + BOOT.BIN commands.
 
 ## Facts that are not obvious

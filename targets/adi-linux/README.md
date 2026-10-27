@@ -85,6 +85,8 @@ After `cim makefile`:
 ```bash
 make guide-help
 make list-combos
+make list-combos-json  # supported combinations as JSON
+make config-json       # machine-readable build configuration and commands (JSON)
 make guide          # interactive wizard
 make guide-dry-run  # wizard that stops before confirmation
 ```

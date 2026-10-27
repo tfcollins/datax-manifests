@@ -2,6 +2,7 @@
 """Side-effect-free selection UI; all artifact policy stays in build-kernel.py."""
 import argparse
 import importlib.util
+import json
 from pathlib import Path
 import shlex
 import subprocess
@@ -54,18 +55,35 @@ def main(argv=None):
     parser.add_argument("--platform", choices=kernel.TARGETS, default="zynq")
     parser.add_argument("-j", "--jobs", default="4")
     parser.add_argument("--output", help="default: artifacts/RELEASE/PLATFORM")
+    parser.add_argument("--json", action="store_true", help="output structured JSON (offline, machine-readable)")
     action = parser.add_mutually_exclusive_group()
     action.add_argument("--dry-run", action="store_true", help="print commands only; never download/build/verify")
     action.add_argument("--build", action="store_true", help="explicitly execute the helper (may download/build)")
     action.add_argument("--verify", action="store_true", help="offline artifact verification only")
     args = parser.parse_args(argv)
     if args.list:
-        for release, source in kernel.RELEASES.items():
-            for platform in kernel.TARGETS:
-                print(f"{release} / {platform} ({source['ref']})")
+        if args.json:
+            items = []
+            for release, source in kernel.RELEASES.items():
+                for platform in kernel.TARGETS:
+                    target_spec = kernel.TARGETS[platform]
+                    items.append({
+                        "release": release,
+                        "platform": platform,
+                        "ref": source["ref"],
+                        "arch": target_spec["arch"],
+                        "defconfig": target_spec["defconfig"],
+                        "output_format": target_spec["output"],
+                        "image": target_spec["image"],
+                    })
+            print(json.dumps(items, indent=2))
+        else:
+            for release, source in kernel.RELEASES.items():
+                for platform in kernel.TARGETS:
+                    print(f"{release} / {platform} ({source['ref']})")
         return 0
-    interactive = args.interactive or (not any((args.dry_run, args.build, args.verify)) and sys.stdin.isatty())
-    if not interactive and not any((args.dry_run, args.build, args.verify)):
+    interactive = args.interactive or (not any((args.dry_run, args.build, args.verify, args.json)) and sys.stdin.isatty())
+    if not interactive and not any((args.dry_run, args.build, args.verify, args.json)):
         parser.print_help()
         return 0
     try:
@@ -80,6 +98,25 @@ def main(argv=None):
         args.output = output(args.output or f"artifacts/{args.release}/{args.platform}")
         command = [sys.executable, str(HELPER), "--release", args.release, "--platform", args.platform,
                    "--jobs", args.jobs, "--output", args.output]
+        if args.json:
+            cfg = {
+                "target": "adi-linux",
+                "release": args.release,
+                "platform": args.platform,
+                "ref": kernel.RELEASES[args.release]["ref"],
+                "arch": kernel.TARGETS[args.platform]["arch"],
+                "defconfig": kernel.TARGETS[args.platform]["defconfig"],
+                "output_dir": args.output,
+                "output_format": kernel.TARGETS[args.platform]["output"],
+                "jobs": int(args.jobs),
+                "provenance": kernel.provenance(args.platform, args.release),
+                "commands": {
+                    "build": shlex.join(command),
+                    "verify": shlex.join(command + ["--verify"]),
+                },
+            }
+            print(json.dumps(cfg, indent=2))
+            return 0
         print("[Step 5/5] Build Configuration Summary")
         print(f"Release: {args.release} ({kernel.RELEASES[args.release]['ref']}); Platform: {args.platform}; Jobs: {args.jobs}")
         print("Build command: " + shlex.join(command))

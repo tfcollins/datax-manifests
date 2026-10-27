@@ -394,9 +394,21 @@ def extract_prebuilt_files(
     return extracted_files
 
 
-def list_prebuilts(arch=None, cache_dir=DEFAULT_CACHE):
+def list_prebuilts(arch=None, cache_dir=DEFAULT_CACHE, as_json=False):
     """Print all available prebuilt project / carrier board combinations."""
     archs = [arch] if arch else list(CATALOG.keys())
+    if as_json:
+        results = []
+        for a in archs:
+            meta = get_metadata(a, cache_dir=cache_dir)
+            for p in meta.get("projects", []):
+                results.append({
+                    "arch": a,
+                    "board": None if p.get("board") == "-" else p.get("board"),
+                    "name": p.get("name", ""),
+                })
+        print(json.dumps(results, indent=2))
+        return
     print(f"{'ARCHITECTURE':<14} | {'CARRIER BOARD':<20} | {'PROJECT NAME':<32}")
     print("-" * 15 + "+" + "-" * 22 + "+" + "-" * 34)
     total = 0
@@ -428,6 +440,7 @@ def main(argv=None):
         default="all",
         help="Components to extract (default: all)",
     )
+    parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
 
     action = parser.add_mutually_exclusive_group()
     action.add_argument("-l", "--list", action="store_true", help="List available prebuilt project combinations")
@@ -438,7 +451,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     if args.list:
-        list_prebuilts(arch=args.arch, cache_dir=args.cache)
+        list_prebuilts(arch=args.arch, cache_dir=args.cache, as_json=args.json)
         return 0
 
     if args.check:
@@ -446,10 +459,25 @@ def main(argv=None):
             parser.error("--check requires --project")
         arch, matched = find_prebuilt(args.project, args.board, arch=args.arch, cache_dir=args.cache)
         if matched:
-            print(f"FOUND: arch={arch} board={matched.get('board')} name={matched.get('name')}")
+            if args.json:
+                print(json.dumps({
+                    "found": True,
+                    "arch": arch,
+                    "board": matched.get("board"),
+                    "name": matched.get("name"),
+                }, indent=2))
+            else:
+                print(f"FOUND: arch={arch} board={matched.get('board')} name={matched.get('name')}")
             return 0
         else:
-            print(f"NOT FOUND: project={args.project} board={args.board or '-'}", file=sys.stderr)
+            if args.json:
+                print(json.dumps({
+                    "found": False,
+                    "project": args.project,
+                    "board": args.board or "-",
+                }, indent=2))
+            else:
+                print(f"NOT FOUND: project={args.project} board={args.board or '-'}", file=sys.stderr)
             return 1
 
     if args.download:

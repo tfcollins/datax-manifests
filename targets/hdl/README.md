@@ -28,6 +28,10 @@ make list-combos                      # every project / carrier board / tool for
 make list-prebuilts                   # prebuilt bitstreams available from ADI Kuiper packages
 make list-boards HDL_PROJECT=ad9081_fmca_ebz
 make guide                            # interactive wizard
+make config-json                      # machine-readable build configuration and commands (JSON)
+make list-combos-json                 # all project / board combinations as JSON
+make check-tools-json                 # tool detection status as JSON
+make list-prebuilts-json              # prebuilt bitstreams as JSON
 make sdk-build HDL_PROJECT=fmcomms2 HDL_BOARD=zed BUILD_BOOT_BIN=true
 make sdk-build HDL_PROJECT=fmcomms2 HDL_BOARD=zcu102 HDL_BITSTREAM=download BUILD_BOOT_BIN=true
 ```

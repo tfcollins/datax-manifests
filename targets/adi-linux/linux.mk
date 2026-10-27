@@ -1,5 +1,5 @@
 # Offline discovery and guided selection, matching the HDL target conventions.
-.PHONY: guide guide-help guide-dry-run list-combos
+.PHONY: guide guide-help guide-dry-run list-combos config-json list-combos-json
 
 guide:
 	@python3 scripts/guide-linux.py --interactive
@@ -12,3 +12,9 @@ guide-dry-run:
 
 list-combos:
 	@python3 scripts/guide-linux.py --list
+
+list-combos-json:
+	@python3 scripts/guide-linux.py --list --json
+
+config-json:
+	@python3 scripts/guide-linux.py --release "$(KERNEL_RELEASE)" --platform "$(KERNEL_PLATFORM)" --jobs "$(KERNEL_JOBS)" --output "$(KERNEL_OUTPUT)" --json
