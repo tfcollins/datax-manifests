@@ -32,6 +32,24 @@ cd ~/cim-hdl && cim makefile
 Use `--source /path/to/datax-manifests` for a local checkout, or
 `--version <commit>` to pin a reviewed revision of this repository.
 
+### Machine-readable discovery & configuration export (JSON)
+
+Programmatic tools and AI agents can inspect target metadata and export resolved workspace configurations without driving interactive wizards:
+
+```bash
+# Discover targets and inspect variable schemas/dependencies before workspace init:
+python3 scripts/manifest-tool.py --list-targets --json
+python3 scripts/manifest-tool.py --target hdl --json
+
+# Inside an initialized workspace, export the fully resolved build configuration & commands:
+make config-json
+
+# Query matrix combinations and tool status as JSON:
+make list-combos-json
+make check-tools-json
+make list-prebuilts-json
+```
+
 ## Targets
 
 | Target | Description |

@@ -200,9 +200,36 @@ cmd_list() {
     done
 }
 
+cmd_list_json() {
+    python3 -c '
+import json, sys
+
+presets = []
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    parts = line.split("\t")
+    if len(parts) >= 5:
+        presets.append({
+            "board": parts[0],
+            "ref": parts[1],
+            "defconfig": parts[2],
+            "device_tree": None if parts[3] == "-" else parts[3],
+            "cross_compile": parts[4]
+        })
+print(json.dumps(presets, indent=2))
+' <<EOF
+$(for b in $PRESET_NAMES; do
+    read -r p_ref p_defconfig p_dt p_cross < <(preset "$b")
+    printf "%s\t%s\t%s\t%s\t%s\n" "$b" "$p_ref" "$p_defconfig" "$p_dt" "$p_cross"
+done)
+EOF
+}
+
 main() {
     local board="" release="${UBOOT_RELEASE:-hdl_2026_r1}" ref="" defconfig="" dt="" cross="" jobs=""
-    local hdl_project="" hdl_board="" dry_run="false" clean="false" check_deps="false"
+    local hdl_project="" hdl_board="" dry_run="false" clean="false" check_deps="false" opt_json="false"
     [ $# -eq 0 ] && { show_help; return 0; }
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -215,7 +242,15 @@ main() {
             -j|--jobs) jobs="$2"; shift 2 ;;
             --hdl-project) hdl_project="$2"; shift 2 ;;
             --hdl-board) hdl_board="$2"; shift 2 ;;
-            --list) cmd_list; return 0 ;;
+            --list)
+                if [ "${2:-}" = "--json" ] || [ "$opt_json" = "true" ]; then
+                    cmd_list_json
+                else
+                    cmd_list
+                fi
+                return 0
+                ;;
+            --json) opt_json="true"; shift ;;
             --dry-run) dry_run="true"; shift ;;
             --check-deps) check_deps="true"; shift ;;
             --clean) clean="true"; shift ;;
@@ -265,6 +300,33 @@ main() {
     fi
     [ "$dt" = "-" ] && dt=""
     jobs="${jobs:-$(nproc 2>/dev/null || echo 4)}"
+    local dt_arg=""
+    [ -n "$dt" ] && dt_arg="DEVICE_TREE=${dt}"
+
+    if [ "$opt_json" = "true" ]; then
+        python3 -c '
+import json, sys
+data = {
+    "target": "u-boot-xlnx",
+    "board": sys.argv[1] if sys.argv[1] else None,
+    "release": sys.argv[2],
+    "ref": sys.argv[3],
+    "defconfig": sys.argv[4],
+    "device_tree": sys.argv[5] if sys.argv[5] else None,
+    "cross_compile": sys.argv[6],
+    "jobs": sys.argv[7],
+    "output": sys.argv[8] + "/u-boot.elf",
+    "commands": {
+        "checkout": "git -C \"" + sys.argv[8] + "\" checkout " + sys.argv[3],
+        "defconfig": "make -C \"" + sys.argv[8] + "\" " + sys.argv[4] + " CROSS_COMPILE=" + sys.argv[6] + (" " + sys.argv[9] if sys.argv[9] else ""),
+        "build": "make -C \"" + sys.argv[8] + "\" -j" + sys.argv[7] + " CROSS_COMPILE=" + sys.argv[6] + (" " + sys.argv[9] if sys.argv[9] else ""),
+        "elf": "make -C \"" + sys.argv[8] + "\" CROSS_COMPILE=" + sys.argv[6] + (" " + sys.argv[9] if sys.argv[9] else "") + " u-boot.elf"
+    }
+}
+print(json.dumps(data, indent=2))
+' "$board" "$release" "$ref" "$defconfig" "$dt" "$cross" "$jobs" "$UBOOT_DIR" "$dt_arg"
+        return 0
+    fi
 
     echo -e "${BOLD}${GREEN}u-boot-xlnx build${RESET}"
     echo "  Board:         ${board:-(explicit)}"

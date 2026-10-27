@@ -6,7 +6,7 @@
 # Makefile's u-boot-xlnx / arm-trusted-firmware targets, which sdk-build
 # depends on.
 
-.PHONY: boot-uboot boot-atf boot-dry-run boot-clean
+.PHONY: boot-uboot boot-atf boot-dry-run boot-clean boot-config-json
 
 # Nothing to build when no BOOT.BIN is requested or the prebuilt download is
 # selected (make sdk-build BUILD_BOOT_BIN=false / BOOT_BIN_UBOOT=download).
@@ -37,3 +37,10 @@ boot-dry-run:
 boot-clean:
 	@bash scripts/build-uboot.sh --clean
 	@bash scripts/build-atf.sh --clean
+
+boot-config-json:
+	@plat="$(ATF_PLAT)"; if [ "$$plat" = auto ]; then plat="$$(bash scripts/build-hdl.sh --release "$(HDL_RELEASE)" --project "$(HDL_PROJECT)" $(if $(HDL_BOARD),--board "$(HDL_BOARD)") --boot-arch 2>/dev/null || echo "none")"; fi; \
+	python3 -c 'import json, sys; u = json.loads(sys.argv[1]) if sys.argv[1].strip() else None; a = json.loads(sys.argv[2]) if sys.argv[2] not in ("none", "") else None; print(json.dumps({"target": "hdl-boot", "boot_arch": sys.argv[3], "uboot": u, "atf": a}, indent=2))' \
+	"$$(bash scripts/build-uboot.sh --board "$(UBOOT_BOARD)" --release "$(HDL_RELEASE)" --hdl-project "$(HDL_PROJECT)" $(if $(HDL_BOARD),--hdl-board "$(HDL_BOARD)") --dry-run --json 2>/dev/null || echo "{}")" \
+	"$$(if [ "$$plat" = zynq ] || [ "$$plat" = none ]; then echo "none"; else bash scripts/build-atf.sh --plat "$$plat" --release "$(HDL_RELEASE)" --console "$(ATF_CONSOLE)" --dry-run --json 2>/dev/null || echo "none"; fi)" \
+	"$$plat"

@@ -559,6 +559,138 @@ cmd_check_tools() {
     [ -n "$VIVADO_DEFAULT" ]
 }
 
+cmd_list_all_json() {
+    python3 -c '
+import json, sys
+
+combos = []
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    parts = line.split("\t")
+    if len(parts) >= 4:
+        proj, board, tool, arch = parts[0], parts[1], parts[2], parts[3]
+        combos.append({
+            "project": proj,
+            "board": None if board == "-" else board,
+            "is_carrierless": board == "-",
+            "tool": tool,
+            "boot_arch": None if arch == "none" else arch
+        })
+print(json.dumps(combos, indent=2))
+' <<EOF
+$(for proj in $(get_all_projects); do
+    if is_carrierless_project "$proj"; then
+        arch="$(get_boot_arch "$proj" "" 2>/dev/null || echo "none")"
+        tool="$(get_required_tool "$proj" "")"
+        printf "%s\t-\t%s\t%s\n" "$proj" "$tool" "$arch"
+    else
+        for board in $(get_project_boards "$proj"); do
+            arch="$(get_boot_arch "$proj" "$board" 2>/dev/null || echo "none")"
+            tool="$(get_required_tool "$proj" "$board")"
+            printf "%s\t%s\t%s\t%s\n" "$proj" "$board" "$tool" "$arch"
+        done
+    fi
+done)
+EOF
+}
+
+cmd_list_projects_json() {
+    python3 -c 'import json, sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()], indent=2))' <<EOF
+$(get_all_projects)
+EOF
+}
+
+cmd_list_boards_json() {
+    local proj="$1"
+    if is_carrierless_project "$proj"; then
+        echo "[]"
+    else
+        python3 -c 'import json, sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()], indent=2))' <<EOF
+$(get_project_boards "$proj")
+EOF
+    fi
+}
+
+cmd_list_tools_json() {
+    python3 -c '
+import json, sys
+
+tools = {"Vivado": [], "Quartus": [], "Radiant": []}
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    parts = line.split("\t")
+    if len(parts) >= 3:
+        proj, board, tool = parts[0], parts[1], parts[2]
+        entry = {"project": proj, "board": None if board == "-" else board}
+        if tool in tools:
+            tools[tool].append(entry)
+        else:
+            tools.setdefault(tool, []).append(entry)
+print(json.dumps(tools, indent=2))
+' <<EOF
+$(for proj in $(get_all_projects); do
+    if is_carrierless_project "$proj"; then
+        tool="$(get_required_tool "$proj" "")"
+        printf "%s\t-\t%s\n" "$proj" "$tool"
+    else
+        for board in $(get_project_boards "$proj"); do
+            tool="$(get_required_tool "$proj" "$board")"
+            printf "%s\t%s\t%s\n" "$proj" "$board" "$tool"
+        done
+    fi
+done)
+EOF
+}
+
+cmd_check_tools_json() {
+    local v_installed="false" v_status="Not detected"
+    local q_installed="false" q_status="Not detected"
+    local r_installed="false" r_status="Not detected"
+
+    if check_eda_tool_status "Vivado" >/dev/null 2>&1; then
+        v_installed="true"
+        v_status="$(check_eda_tool_status "Vivado" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')"
+    fi
+    if check_eda_tool_status "Quartus" >/dev/null 2>&1; then
+        q_installed="true"
+        q_status="$(check_eda_tool_status "Quartus" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')"
+    fi
+    if check_eda_tool_status "Radiant" >/dev/null 2>&1; then
+        r_installed="true"
+        r_status="$(check_eda_tool_status "Radiant" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')"
+    fi
+
+    python3 -c '
+import json, sys
+data = {
+    "release": sys.argv[1],
+    "vivado": {
+        "version": sys.argv[2],
+        "path": sys.argv[3],
+        "installed": sys.argv[4] == "true",
+        "status": sys.argv[5]
+    },
+    "quartus": {
+        "path": sys.argv[6],
+        "installed": sys.argv[7] == "true",
+        "status": sys.argv[8]
+    },
+    "radiant": {
+        "path": sys.argv[9],
+        "installed": sys.argv[10] == "true",
+        "status": sys.argv[11]
+    }
+}
+print(json.dumps(data, indent=2))
+' "$HDL_RELEASE" "${VIVADO_VERSION:-unknown}" "${VIVADO_DEFAULT:-}" "$v_installed" "$v_status" \
+  "${QUARTUS_DEFAULT}" "$q_installed" "$q_status" \
+  "${LATTICE_DEFAULT}" "$r_installed" "$r_status"
+}
+
 # List boards for a single project
 cmd_list_boards_for_project() {
     local proj="$1"
@@ -842,6 +974,7 @@ execute_build() {
     local dry_run="${7:-false}"
     local boot_bin_atf="${8:-download}"
     local hdl_bitstream="${9:-source}"
+    local as_json="${10:-$opt_json}"
 
     if ! is_valid_combo "$proj" "$board"; then
         echo -e "${RED}[ERROR]${RESET} Invalid project/board combination: \x27${proj}/${board}\x27" >&2
@@ -853,7 +986,11 @@ execute_build() {
     fi
     if is_carrierless_project "$proj"; then
         if [ -n "$board" ]; then
-            echo -e "${YELLOW}[WARN]${RESET} Project \x27${proj}\x27 has no carrier boards; ignoring HDL_BOARD=${board}."
+            if [ "$as_json" = "true" ]; then
+                echo -e "${YELLOW}[WARN]${RESET} Project \x27${proj}\x27 has no carrier boards; ignoring HDL_BOARD=${board}." >&2
+            else
+                echo -e "${YELLOW}[WARN]${RESET} Project \x27${proj}\x27 has no carrier boards; ignoring HDL_BOARD=${board}."
+            fi
         fi
         board=""
     fi
@@ -881,12 +1018,66 @@ execute_build() {
                 exit 1
             fi
             if [ "$boot_arch" != "zynq" ] && [ "$boot_bin_atf" = "download" ] && ! command -v aarch64-linux-gnu-gcc >/dev/null 2>&1; then
-                echo -e "${YELLOW}[WARN]${RESET} BOOT_BIN_ATF=download builds arm-trusted-firmware and needs aarch64-linux-gnu-gcc (apt: gcc-aarch64-linux-gnu), or pass BOOT_BIN_ATF=/path/to/bl31.elf."
+                if [ "$as_json" = "true" ]; then
+                    echo -e "${YELLOW}[WARN]${RESET} BOOT_BIN_ATF=download builds arm-trusted-firmware and needs aarch64-linux-gnu-gcc (apt: gcc-aarch64-linux-gnu), or pass BOOT_BIN_ATF=/path/to/bl31.elf." >&2
+                else
+                    echo -e "${YELLOW}[WARN]${RESET} BOOT_BIN_ATF=download builds arm-trusted-firmware and needs aarch64-linux-gnu-gcc (apt: gcc-aarch64-linux-gnu), or pass BOOT_BIN_ATF=/path/to/bl31.elf."
+                fi
             fi
         else
-            echo -e "${YELLOW}[WARN]${RESET} BOOT.BIN requested but ${proj}${board:+/${board}} does not target a Zynq / ZynqMP / Versal device (device: $(get_device "$proj" "$board" || echo unknown)); skipping BOOT.BIN."
+            if [ "$as_json" = "true" ]; then
+                echo -e "${YELLOW}[WARN]${RESET} BOOT.BIN requested but ${proj}${board:+/${board}} does not target a Zynq / ZynqMP / Versal device (device: $(get_device "$proj" "$board" || echo unknown)); skipping BOOT.BIN." >&2
+            else
+                echo -e "${YELLOW}[WARN]${RESET} BOOT.BIN requested but ${proj}${board:+/${board}} does not target a Zynq / ZynqMP / Versal device (device: $(get_device "$proj" "$board" || echo unknown)); skipping BOOT.BIN."
+            fi
             boot_bin_enabled="false"
         fi
+    fi
+
+    if [ "$as_json" = "true" ]; then
+        local build_cmd=""
+        if [ "$hdl_bitstream" = "download" ]; then
+            build_cmd="python3 \"$(get_prebuilt_script)\" --extract --project \"${proj}\"${board:+ --board \"${board}\"} --project-name \"${project_name}\" --output \"${project_board_dir}/${dir_name}\""
+        else
+            build_cmd="make ${make_jobs} -C \"${project_board_dir}\" DIR_NAME=\"${dir_name}\""
+        fi
+        python3 -c '
+import json, sys
+data = {
+    "target": "hdl",
+    "release": sys.argv[1],
+    "project": sys.argv[2],
+    "board": None if sys.argv[3] == "" else sys.argv[3],
+    "is_carrierless": sys.argv[4] == "true",
+    "tool": {
+        "name": sys.argv[5],
+        "version": sys.argv[6] if sys.argv[6] != "" else None,
+        "env_setup": sys.argv[7]
+    },
+    "boot_arch": None if sys.argv[8] in ("", "none") else sys.argv[8],
+    "boot_bin": {
+        "enabled": sys.argv[9] == "true",
+        "uboot": sys.argv[10],
+        "atf": sys.argv[11],
+        "command": sys.argv[12]
+    },
+    "hdl_bitstream": sys.argv[13],
+    "make_jobs": sys.argv[14],
+    "dir_name": sys.argv[15],
+    "project_dir": sys.argv[16],
+    "project_name": sys.argv[17],
+    "commands": {
+        "build": sys.argv[18],
+        "clean": "make -C \"" + sys.argv[16] + "\" DIR_NAME=\"" + sys.argv[15] + "\" clean",
+        "boot_bin": sys.argv[12] if sys.argv[9] == "true" else ""
+    }
+}
+print(json.dumps(data, indent=2))
+' "$HDL_RELEASE" "$proj" "$board" "$(is_carrierless_project "$proj" && echo true || echo false)" \
+  "$tool" "${VIVADO_VERSION:-}" "$env_setup" "$boot_arch" "$boot_bin_enabled" "$boot_bin_uboot" \
+  "$boot_bin_atf" "$boot_bin_cmd" "$hdl_bitstream" "$make_jobs" "$dir_name" \
+  "$project_board_dir" "$project_name" "$build_cmd"
+        return 0
     fi
 
     echo -e "\n${BOLD}${GREEN}================================================================================${RESET}"
@@ -986,8 +1177,13 @@ execute_clean() {
     local proj="$1"
     local board="$2"
     local dir_name="$3"
+    local as_json="${4:-$opt_json}"
 
     if ! is_valid_combo "$proj" "$board"; then
+        if [ "$as_json" = "true" ]; then
+            python3 -c 'import json, sys; print(json.dumps({"target": "hdl", "action": "clean", "error": "invalid combination", "project": sys.argv[1], "board": sys.argv[2]}, indent=2))' "$proj" "$board"
+            return 0
+        fi
         echo "Project/board ${proj}/${board} does not exist in release ${HDL_RELEASE}; nothing to clean."
         return 0
     fi
@@ -999,6 +1195,24 @@ execute_clean() {
     if [ "$tool" = "Vivado" ]; then require_vivado; fi
     local env_setup
     env_setup=$(get_tool_env_setup "$tool")
+
+    if [ "$as_json" = "true" ]; then
+        python3 -c '
+import json, sys
+data = {
+    "target": "hdl",
+    "action": "clean",
+    "release": sys.argv[1],
+    "project": sys.argv[2],
+    "board": None if sys.argv[3] == "" else sys.argv[3],
+    "dir_name": sys.argv[4],
+    "project_dir": sys.argv[5],
+    "command": "make -C \"" + sys.argv[5] + "\" DIR_NAME=\"" + sys.argv[4] + "\" clean"
+}
+print(json.dumps(data, indent=2))
+' "$HDL_RELEASE" "$proj" "$board" "$dir_name" "$project_board_dir"
+        return 0
+    fi
     bash -c "
         unset MAKEFLAGS MAKEOVERRIDES MFLAGS MAKELEVEL VIVADO QUARTUS LATTICE_RADIANT
         ${env_setup} 2>/dev/null || true
@@ -1044,6 +1258,7 @@ Direct Build Options:
   --dry-run                  Display resolved tool environment and make commands without executing
 
 Inspection & Information Options:
+  --json                     Output machine-readable JSON for listing and dry-run actions
   -l, --list                 List all 160+ project-carrier board combinations and required tools
   --list-projects            List all available HDL projects
   --list-boards <project>    List all supported carrier boards for a specific project
@@ -1096,6 +1311,7 @@ main() {
     local opt_clean="false"
     local opt_action=""
     local opt_action_arg=""
+    local opt_json="false"
 
     if [ $# -eq 0 ]; then
         if [ -t 0 ]; then
@@ -1180,6 +1396,10 @@ main() {
                 opt_clean="true"
                 shift
                 ;;
+            --json)
+                opt_json="true"
+                shift
+                ;;
             -l|--list)
                 opt_action="list"
                 shift
@@ -1233,24 +1453,32 @@ main() {
 
     case "$opt_action" in
         list)
-            cmd_list_all
+            if [ "$opt_json" = "true" ]; then cmd_list_all_json; else cmd_list_all; fi
             return 0
             ;;
         list-projects)
-            echo -e "${BOLD}Available HDL Projects (${HDL_RELEASE}):${RESET}"
-            get_all_projects | column -c 80
+            if [ "$opt_json" = "true" ]; then
+                cmd_list_projects_json
+            else
+                echo -e "${BOLD}Available HDL Projects (${HDL_RELEASE}):${RESET}"
+                get_all_projects | column -c 80
+            fi
             return 0
             ;;
         list-boards)
-            cmd_list_boards_for_project "$opt_action_arg"
+            if [ "$opt_json" = "true" ]; then
+                cmd_list_boards_json "$opt_action_arg"
+            else
+                cmd_list_boards_for_project "$opt_action_arg"
+            fi
             return $?
             ;;
         list-tools)
-            cmd_list_tools
+            if [ "$opt_json" = "true" ]; then cmd_list_tools_json; else cmd_list_tools; fi
             return 0
             ;;
         check-tools)
-            cmd_check_tools
+            if [ "$opt_json" = "true" ]; then cmd_check_tools_json; else cmd_check_tools; fi
             return $?
             ;;
         boot-arch)
@@ -1271,13 +1499,17 @@ main() {
 
     if [ -n "$opt_proj" ] && { [ -n "$opt_board" ] || is_carrierless_project "$opt_proj"; }; then
         if [ "$opt_clean" = "true" ]; then
-            execute_clean "$opt_proj" "$opt_board" "$opt_dirname"
+            execute_clean "$opt_proj" "$opt_board" "$opt_dirname" "$opt_json"
         else
-            execute_build "$opt_proj" "$opt_board" "$opt_jobs" "$opt_dirname" "$opt_boot_bin" "$opt_uboot" "$opt_dry_run" "$opt_atf" "$opt_hdl_bitstream"
+            execute_build "$opt_proj" "$opt_board" "$opt_jobs" "$opt_dirname" "$opt_boot_bin" "$opt_uboot" "$opt_dry_run" "$opt_atf" "$opt_hdl_bitstream" "$opt_json"
         fi
     elif [ -n "$opt_proj" ] && [ -z "$opt_board" ]; then
-        cmd_list_boards_for_project "$opt_proj" || exit 1
-        echo -e "${YELLOW}[HINT]${RESET} Specify a carrier board with --board <board_name> to build."
+        if [ "$opt_json" = "true" ]; then
+            cmd_list_boards_json "$opt_proj" || exit 1
+        else
+            cmd_list_boards_for_project "$opt_proj" || exit 1
+            echo -e "${YELLOW}[HINT]${RESET} Specify a carrier board with --board <board_name> to build."
+        fi
     else
         echo -e "${RED}[ERROR]${RESET} Both --project and --board must be specified for non-interactive build." >&2
         echo "Run with --interactive or $(basename "$0") --help for options." >&2

@@ -24,6 +24,8 @@ cim init --target hdl-boot --source https://github.com/tfcollins/datax-manifests
 cd ~/cim-hdl-boot && cim makefile
 
 make boot-dry-run HDL_PROJECT=jupiter_sdr        # show the u-boot / ATF resolution
+make config-json  HDL_PROJECT=jupiter_sdr        # export resolved HDL + BOOT.BIN config as JSON
+make boot-config-json HDL_PROJECT=jupiter_sdr    # export resolved u-boot and ATF config as JSON
 make sdk-build    HDL_PROJECT=jupiter_sdr        # u-boot + bl31 + Vivado + BOOT.BIN
 make sdk-build    HDL_PROJECT=fmcomms2 HDL_BOARD=zed HDL_RELEASE=hdl_2023_r2
 make sdk-build    HDL_PROJECT=fmcomms2 HDL_BOARD=zcu102 HDL_BITSTREAM=download # build u-boot/bl31 with prebuilt bitstream (no Vivado)
