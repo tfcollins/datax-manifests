@@ -381,6 +381,76 @@ class PrebuiltCliTests(unittest.TestCase):
         self.assertEqual(res.returncode, 1)
         self.assertIn("NOT FOUND", res.stderr)
 
+    def test_list_json(self):
+        res = subprocess.run(
+            [
+                "python3",
+                str(SCRIPT),
+                "--cache",
+                str(self.cache_dir),
+                "--arch",
+                "versal",
+                "--list",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        self.assertEqual(res.returncode, 0, res.stderr)
+        data = json.loads(res.stdout)
+        self.assertIsInstance(data, list)
+        self.assertTrue(any(p["name"] == "ad9081" for p in data))
+
+    def test_check_json(self):
+        # Found case
+        res = subprocess.run(
+            [
+                "python3",
+                str(SCRIPT),
+                "--cache",
+                str(self.cache_dir),
+                "--arch",
+                "versal",
+                "--check",
+                "--project",
+                "ad9081",
+                "--board",
+                "vck190",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        self.assertEqual(res.returncode, 0, res.stderr)
+        data = json.loads(res.stdout)
+        self.assertTrue(data["found"])
+        self.assertEqual(data["arch"], "versal")
+        self.assertEqual(data["board"], "vck190")
+
+        # Not found case
+        res_not_found = subprocess.run(
+            [
+                "python3",
+                str(SCRIPT),
+                "--cache",
+                str(self.cache_dir),
+                "--arch",
+                "versal",
+                "--check",
+                "--project",
+                "nonexistent_proj",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        self.assertEqual(res_not_found.returncode, 1)
+        data_nf = json.loads(res_not_found.stdout)
+        self.assertFalse(data_nf["found"])
+
 
 if __name__ == "__main__":
     unittest.main()

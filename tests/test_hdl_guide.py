@@ -1,4 +1,5 @@
 """Offline contract tests for targets/hdl/build-hdl.sh release handling."""
+import json
 import os
 import re
 import shutil
@@ -336,10 +337,13 @@ class HdlGuideTests(unittest.TestCase):
         return str(viv)
 
     def test_build_failure_propagates(self):
-        board_dir = self.workspace / "hdl/projects/cn0561/de10nano"   # intel: no tool check needed
-        (board_dir / "Makefile").write_text("all:\n\t@echo BUILD FAILED; exit 3\n")
+        board_dir = self.workspace / "hdl/projects/cn0561/de10nano"   # intel: stub QUARTUS_ROOTDIR
+        (board_dir / "Makefile").write_text("include ../../../scripts/project-intel.mk\nall:\n\t@echo BUILD FAILED; exit 3\n")
         git(self.workspace / "hdl", "commit", "-qam", "failing stub")
-        result = self.run_script("--project", "cn0561", "--board", "de10nano")
+        fake_quartus = self.workspace / "fake-quartus"
+        fake_quartus.mkdir(exist_ok=True)
+        result = self.run_script("--project", "cn0561", "--board", "de10nano",
+                                 env={"QUARTUS_ROOTDIR": str(fake_quartus)})
         self.assertNotEqual(result.returncode, 0)          # make reports 2 for a failed recipe
         self.assertIn("[FAILED] HDL build of cn0561/de10nano exited with status 2", result.stderr)
         self.assertNotIn("[SUCCESS]", result.stdout)
@@ -395,6 +399,50 @@ class HdlGuideTests(unittest.TestCase):
                                  "--dir-name", "out")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("CLEANED out", result.stdout)
+
+    def test_list_json(self):
+        result = self.run_script("--list", "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertIsInstance(data, list)
+        self.assertTrue(any(c["project"] == "fmcomms2" and c["board"] == "zcu102" for c in data))
+        self.assertTrue(any(c["project"] == "jupiter_sdr" and c["is_carrierless"] for c in data))
+
+    def test_list_projects_json(self):
+        result = self.run_script("--list-projects", "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertIsInstance(data, list)
+        self.assertIn("fmcomms2", data)
+        self.assertIn("jupiter_sdr", data)
+
+    def test_list_boards_json(self):
+        result = self.run_script("--list-boards", "fmcomms2", "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertIsInstance(data, list)
+        self.assertIn("zcu102", data)
+
+    def test_check_tools_json(self):
+        result = self.run_script("--check-tools", "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertIn("release", data)
+        self.assertIn("vivado", data)
+        self.assertIn("quartus", data)
+        self.assertIn("radiant", data)
+
+    def test_dry_run_json(self):
+        result = self.run_script("--project", "fmcomms2", "--board", "zcu102", "--boot-bin", "--dry-run", "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertEqual(data["target"], "hdl")
+        self.assertEqual(data["project"], "fmcomms2")
+        self.assertEqual(data["board"], "zcu102")
+        self.assertEqual(data["tool"]["name"], "Vivado")
+        self.assertEqual(data["boot_arch"], "zynqmp")
+        self.assertTrue(data["boot_bin"]["enabled"])
+        self.assertIn("make", data["commands"]["build"])
 
 
 class HdlBootWizardTests(HdlGuideTests):

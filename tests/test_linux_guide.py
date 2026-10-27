@@ -66,6 +66,30 @@ class GuideTests(unittest.TestCase):
         argv = shlex.split(line.removeprefix("Build command: "))
         self.assertEqual(argv[-1], path)
 
+    def test_json_output(self):
+        # test --list --json
+        res_list = self.run_guide("--list", "--json")
+        self.assertEqual(res_list.returncode, 0, res_list.stderr)
+        import json
+        items = json.loads(res_list.stdout)
+        self.assertIsInstance(items, list)
+        self.assertGreaterEqual(len(items), 4)
+        releases = {item["release"] for item in items}
+        self.assertIn("2023_R2", releases)
+        self.assertIn("2026_R1", releases)
+
+        # test --json configuration export
+        res_cfg = self.run_guide("--release", "2026_R1", "--platform", "zynqmp", "--jobs", "8", "--json")
+        self.assertEqual(res_cfg.returncode, 0, res_cfg.stderr)
+        cfg = json.loads(res_cfg.stdout)
+        self.assertEqual(cfg["target"], "adi-linux")
+        self.assertEqual(cfg["release"], "2026_R1")
+        self.assertEqual(cfg["platform"], "zynqmp")
+        self.assertEqual(cfg["arch"], "arm64")
+        self.assertEqual(cfg["jobs"], 8)
+        self.assertIn("build-kernel.py", cfg["commands"]["build"])
+        self.assertIn("build-kernel.py", cfg["commands"]["verify"])
+
     def test_generated_target(self):
         cim = os.environ.get("CIM_BIN") or shutil.which("cim")
         if not cim:

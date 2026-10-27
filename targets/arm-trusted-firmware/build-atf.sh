@@ -89,6 +89,7 @@ Options:
   --console <uart>         ZynqMP console: cadence0 (default) or cadence1
   --cross-compile <prefix> default aarch64-linux-gnu-
   -j, --jobs <N>
+  --json                   Output machine-readable JSON for dry-run
   --dry-run                Print the resolved ref and commands and exit
   --clean
   -h, --help
@@ -97,7 +98,7 @@ EOF
 
 main() {
     local plat="${ATF_PLAT:-zynqmp}" release="${ATF_RELEASE:-hdl_2026_r1}" ref="" console="cadence0"
-    local cross="aarch64-linux-gnu-" jobs="" dry_run="false" clean="false"
+    local cross="aarch64-linux-gnu-" jobs="" dry_run="false" clean="false" opt_json="false"
     while [ $# -gt 0 ]; do
         case "$1" in
             -p|--plat) plat="$2"; shift 2 ;;
@@ -106,6 +107,7 @@ main() {
             --console) console="$2"; shift 2 ;;
             --cross-compile) cross="$2"; shift 2 ;;
             -j|--jobs) jobs="$2"; shift 2 ;;
+            --json) opt_json="true"; shift ;;
             --dry-run) dry_run="true"; shift ;;
             --clean) clean="true"; shift ;;
             -h|--help) show_help; return 0 ;;
@@ -128,6 +130,30 @@ main() {
     [ "$plat" = "zynqmp" ] && make_args="${make_args} ZYNQMP_CONSOLE=${console}"
     local out="${ATF_DIR}/build/${plat}/release/bl31/bl31.elf"
     local published="${ATF_DIR}/bl31.elf"
+
+    if [ "$opt_json" = "true" ]; then
+        python3 -c '
+import json, sys
+data = {
+    "target": "arm-trusted-firmware",
+    "plat": sys.argv[1],
+    "release": sys.argv[2],
+    "ref": sys.argv[3],
+    "console": sys.argv[4] if sys.argv[1] == "zynqmp" else None,
+    "cross_compile": sys.argv[5],
+    "jobs": sys.argv[6],
+    "output": sys.argv[7],
+    "internal_output": sys.argv[8],
+    "commands": {
+        "checkout": "git -C \"" + sys.argv[9] + "\" checkout " + sys.argv[3],
+        "build": "make -C \"" + sys.argv[9] + "\" -j" + sys.argv[6] + " " + sys.argv[10] + " bl31",
+        "publish": "cp \"" + sys.argv[8] + "\" \"" + sys.argv[7] + "\""
+    }
+}
+print(json.dumps(data, indent=2))
+' "$plat" "$release" "$ref" "$console" "$cross" "$jobs" "$published" "$out" "$ATF_DIR" "$make_args"
+        return 0
+    fi
 
     echo -e "${BOLD}${GREEN}arm-trusted-firmware build${RESET}"
     echo "  PLAT:          ${plat}"
