@@ -44,7 +44,13 @@ before writing a new one.
 3. **CI**: add the target to the `list-targets` assertion; a `cim init`
    smoke (`--source "$PWD"`); real compiles only on hosted runners if they
    need no EDA tools, otherwise on the `hdl-dev-2` job.
-4. Local checks before pushing:
+4. **Skills**: a new `make` verb, script flag or changed default goes into
+   the matching `.claude/skills/*/SKILL.md` (`inspecting-cim-manifests` for
+   queries, `making-boot-bin` / `building-kernel-devicetree` for flows; setup/fast-path
+   row and failures → `building-cim-targets`).
+   `tests/test_skills.py` fails on any `make <verb>` or repo path a skill
+   names that no longer exists.
+5. Local checks before pushing:
    ```bash
    docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:stable -S warning targets/<name>/*.sh
    docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:latest
@@ -57,7 +63,8 @@ before writing a new one.
 - Asserting a host-specific path in a test (`/opt/Xilinx/2023.2/Vivado`) —
   hdl-dev-2 has the other layout. Assert versions, not paths.
 - `git add -A` sweeping a scratch workspace into a commit — workspaces are
-  gitignored as `/test*/`, `/ws-*/`; init elsewhere.
+  gitignored only as `/test[0-9]*/`, `/ws-*/`, `/workspace*/`; init outside
+  the repo (scratch dir).
 - Quoting inside `bash -c "…"` strings: `(` must be escaped or avoided.
 - `MAKEOVERRIDES=` does not stop command-line vars reaching sub-makes; unset
   `MAKEFLAGS MAKEOVERRIDES MFLAGS` before invoking a foreign tree's make.
