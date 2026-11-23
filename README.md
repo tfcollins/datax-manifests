@@ -108,14 +108,21 @@ cosmic theme, `myst-parser`).
 
 ## AI agent skills
 
-`.claude/skills/` carries two Claude Code project skills, auto-loaded for
-sessions in this repository (Codex/Gemini users can point their runtime at
-the same files):
+`.claude/skills/` carries five Claude Code project skills, auto-loaded for
+sessions in a checkout of this repository (Codex/Gemini users can point their
+runtime at the same files). Three answer "how do I use these manifests", two
+cover working on the repo itself:
 
 | Skill | Use when |
 |---|---|
-| `building-cim-targets` | building, initializing or debugging a workspace for any target — fast path per target plus the pitfalls (absolute `--source`, `--install`, LFS, Vivado per release, carrier-less projects, where BOOT.BIN lands, what Error 127 means) |
-| `adding-cim-target` | creating or extending a target — file shape, `extends:`/`overlay:` rules, what a change must ship with (tests, README → docs page, CI wiring), mistakes already made |
+| `inspecting-cim-manifests` | answering what can be built without building — boards per project and release, Vivado per release, prebuilt availability, project ↔ devicetree ↔ u-boot preset joins, the exact command a build will run; which query works in a checkout vs a workspace |
+| `making-boot-bin` | producing a BOOT.BIN — prebuilt vs Vivado vs from-source u-boot/bl31, which Xilinx tools each path really needs, Kuiper prebuilts being 2026_R1-only, where the file lands |
+| `building-kernel-devicetree` | adi-linux kernel and/or devicetree builds — picking `KERNEL_DTS`, dtb-only sweeps, `artifacts.json` and the pyadi-dt hand-off |
+| `building-cim-targets` | initializing, building in or debugging a workspace for any target — absolute `--source`, `--install`, LFS, release switching, what Error 127 means |
+| `adding-cim-target` | creating or extending a target — file shape, `extends:`/`overlay:` rules, what a change must ship with (tests, README → docs page, CI wiring, skills), mistakes already made |
+
+`tests/test_skills.py` keeps them honest: every `make` verb and repo path a
+skill names must exist.
 
 ## Testing
 

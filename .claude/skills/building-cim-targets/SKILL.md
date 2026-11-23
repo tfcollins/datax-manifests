@@ -1,6 +1,6 @@
 ---
 name: building-cim-targets
-description: Use when asked to build, init, or debug a workspace for any target in this repo (hdl, hdl-boot, u-boot-xlnx, arm-trusted-firmware, adi-linux) — "build jupiter_sdr", "make a BOOT.BIN", "cim init fails", "u-boot from source", "which Vivado", or a build that printed Error 127 / gnutls.h / LFS smudge errors.
+description: Use when initializing, building in, or debugging a cim workspace for any target in this repo (hdl, hdl-boot, u-boot-xlnx, arm-trusted-firmware, adi-linux) — "cim init fails", "set up a workspace", "build jupiter_sdr", "u-boot from source", "switch HDL release", or a build that printed Error 127 / gnutls.h / LFS smudge / "worktree is dirty" errors.
 ---
 
 # Building cim targets
@@ -37,27 +37,19 @@ cd <dir> && cim makefile
 | `arm-trusted-firmware` | `make atf-dry-run` | `make sdk-build ATF_PLAT=zynqmp ATF_RELEASE=hdl_2026_r1` → `arm-trusted-firmware/bl31.elf` |
 | `adi-linux` | `make list-combos`, `make list-dts [HDL_PROJECT=x]`, `make guide-dry-run` | `make sdk-build KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynqmp [KERNEL_DTS=zynqmp-jupiter-sdr] KERNEL_JOBS=4` → `artifacts/<rel>/<plat>[/<dts>]/` |
 
-## AI Agent Fast Path (JSON Discovery & Inspection)
-
-AI agents should not attempt to drive the interactive `make guide` wizard. Instead, use structured JSON commands:
-
-- **Pre-workspace target & manifest inspection**:
-  - List all targets: `python3 scripts/manifest-tool.py --list-targets --json`
-  - Inspect target variables, defaults, docstrings, and dependencies: `python3 scripts/manifest-tool.py --target <name> --json`
-- **Workspace configuration export**:
-  - Export resolved build config & exact commands: `make config-json`
-  - In `hdl-boot`: `make boot-config-json` (exports resolved u-boot and ATF config)
-- **Matrix & tool status queries**:
-  - Supported combinations & EDA tool requirements: `make list-combos-json`
-  - Tool installation status: `make check-tools-json`
-  - Carrier boards for a project: `make list-boards-json HDL_PROJECT=<project>`
-  - Prebuilt Kuiper bitstreams/boot files: `make list-prebuilts-json`
-  - u-boot board presets: `make uboot-list-json` (in u-boot-xlnx workspace)
+Questions answered without building ("which boards", "which Vivado", JSON
+for scripts): `inspecting-cim-manifests`. Picking a BOOT.BIN path:
+`making-boot-bin`. Kernel + devicetree: `building-kernel-devicetree`.
 
 Dry-run before any real build: `bash scripts/build-hdl.sh … --dry-run` (or `--dry-run --json`)
 prints the exact tool env + make + BOOT.BIN commands.
 
 ## Facts that are not obvious
+
+- One workspace serves every release: `HDL_RELEASE` (and `UBOOT_RELEASE`,
+  `ATF_RELEASE`, `KERNEL_RELEASE`) are make-time variables. The helper
+  switches the `hdl/` clone (needs network the first time, refuses a dirty
+  tree) and re-derives Vivado — don't re-init to change release.
 
 - Carrier-less projects (`jupiter_sdr`, `pluto`, `m2k`, `sidekiqz2`,
   `usrpe31x`) take only `HDL_PROJECT`; `HDL_BOARD` is ignored with a warning.
