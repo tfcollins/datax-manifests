@@ -78,6 +78,8 @@ Variations
 
 - Another ZedBoard design: ``HDL_PROJECT=ad9361_fmc HDL_BOARD=zed`` — same
   carrier, same u-boot download.
+- Prebuilt bitstream: ``HDL_BITSTREAM=download`` skips Vivado synthesis and
+  fetches the bitstream, XSA and BOOT.BIN directly from ADI's Kuiper packages.
 - Your own u-boot: ``BOOT_BIN_UBOOT=/path/to/u-boot.elf``.
 - Clean: ``make sdk-clean HDL_RELEASE=hdl_2023_r2 HDL_PROJECT=fmcomms2 HDL_BOARD=zed``.
 

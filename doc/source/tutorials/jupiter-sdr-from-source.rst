@@ -87,6 +87,10 @@ Or interactively: ``make guide``, pick ``jupiter_sdr``, accept BOOT.BIN and
 Variations
 ----------
 
+- Prebuilt bitstream without Vivado:
+  ``make sdk-build HDL_PROJECT=jupiter_sdr HDL_BITSTREAM=download``
+  builds u-boot and BL31 from source, then packages them into a BOOT.BIN with
+  the prebuilt bitstream and XSA downloaded from ADI's Kuiper packages.
 - Fall back to ADI's prebuilt u-boot for one build:
   ``make sdk-build HDL_PROJECT=jupiter_sdr BOOT_BIN_UBOOT=download BOOT_BIN_ATF=download``.
 - A ZynqMP carrier design works the same way:

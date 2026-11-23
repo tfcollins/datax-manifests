@@ -47,7 +47,7 @@ jobs:
         uses: raven-actions/actionlint@v2
 
       - name: Python compiles
-        run: python3 -m py_compile targets/adi-linux/*.py tests/*.py
+        run: python3 -m py_compile targets/adi-linux/*.py targets/hdl/*.py tests/*.py
 
       - name: Manifests parse as YAML
         run: |

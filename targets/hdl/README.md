@@ -25,9 +25,11 @@ cim makefile
 
 make check-tools                      # which EDA tools are installed, which Vivado the release wants
 make list-combos                      # every project / carrier board / tool for the selected release
+make list-prebuilts                   # prebuilt bitstreams available from ADI Kuiper packages
 make list-boards HDL_PROJECT=ad9081_fmca_ebz
 make guide                            # interactive wizard
 make sdk-build HDL_PROJECT=fmcomms2 HDL_BOARD=zed BUILD_BOOT_BIN=true
+make sdk-build HDL_PROJECT=fmcomms2 HDL_BOARD=zcu102 HDL_BITSTREAM=download BUILD_BOOT_BIN=true
 ```
 
 ## Selecting a release
@@ -77,6 +79,7 @@ name is used as-is, so your own commits are never reset — run
 | `HDL_BOARD` | `zcu102` | Carrier board under the project |
 | `MAKE_JOBS` | `-j$(nproc)` | Parallel jobs passed to the project make |
 | `DIR_NAME` | `build` | Build output directory name inside the project |
+| `HDL_BITSTREAM` | `source` | HDL bitstream source: `source` (Vivado/Quartus/Radiant) or `download` (ADI Kuiper prebuilts) |
 | `BUILD_BOOT_BIN` | `false` | Generate BOOT.BIN after a Zynq / ZynqMP / Versal build |
 | `BOOT_BIN_UBOOT` | `download` | `u-boot.elf` path, or `download` ADI's prebuilt |
 | `BOOT_BIN_ATF` | `download` | ZynqMP/Versal: `bl31.elf` path, ATF source dir, or `download` (build it) |
@@ -153,6 +156,32 @@ blobs, use the [`hdl-boot`](../hdl-boot/README.md) target (same workspace,
 [`u-boot-xlnx`](../u-boot-xlnx/README.md) /
 [`arm-trusted-firmware`](../arm-trusted-firmware/README.md) and pass the
 paths via `BOOT_BIN_UBOOT=` / `BOOT_BIN_ATF=`.
+
+## Prebuilt HDL bitstreams
+
+Instead of running Vivado / Quartus / Radiant (which requires multi-gigabyte
+EDA installations and substantial compilation time), bitstreams can be
+downloaded directly from Analog Devices' official Kuiper Linux Debian boot
+packages:
+
+```bash
+# List all prebuilt design combinations available in ADI packages
+make list-prebuilts
+
+# Download prebuilt bitstream, XSA and boot files for a design
+make sdk-build HDL_PROJECT=fmcomms2 HDL_BOARD=zcu102 HDL_BITSTREAM=download
+
+# With prebuilt BOOT.BIN as well:
+make sdk-build HDL_PROJECT=fmcomms2 HDL_BOARD=zcu102 HDL_BITSTREAM=download BUILD_BOOT_BIN=true
+```
+
+`HDL_BITSTREAM=download`:
+* Downloads and caches the device-family `.deb` package (`versal`, `zynq` or
+  `zynqmp`) under `~/.cache/cim/hdl-boot-debs/`.
+* Unpacks `system_top.bit` (or `system_top.pdi`), `system_top.xsa`, `BOOT.BIN`
+  and device tree binaries directly into the output directory (`DIR_NAME`).
+* Bypasses local Vivado checks entirely, so HDL projects can be inspected and
+  prepared on hosts without Vivado installed.
 
 ## Guided wizard
 

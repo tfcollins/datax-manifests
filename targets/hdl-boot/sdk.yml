@@ -25,6 +25,7 @@ overlay:
   copy_files:
     remove:
       - scripts/build-hdl.sh
+      - scripts/hdl-prebuilt.py
       - hdl.mk
   variables:
     set:
@@ -38,6 +39,9 @@ makefile_include:
 copy_files:
   - source: build-hdl.sh
     dest: scripts/build-hdl.sh
+    cache: false
+  - source: hdl-prebuilt.py
+    dest: scripts/hdl-prebuilt.py
     cache: false
   - source: hdl.mk
     dest: hdl.mk
@@ -70,7 +74,7 @@ build:
       bash scripts/build-hdl.sh --release "${{ HDL_RELEASE }}" --vivado "${{ VIVADO }}"
       --project "${{ HDL_PROJECT }}" --board "${{ HDL_BOARD }}" --jobs "${{ MAKE_JOBS }}"
       --dir-name "${{ DIR_NAME }}" --boot-bin "${{ BUILD_BOOT_BIN }}" --boot-bin-uboot "${{ BOOT_BIN_UBOOT }}"
-      --boot-bin-atf "${{ BOOT_BIN_ATF }}"
+      --boot-bin-atf "${{ BOOT_BIN_ATF }}" --hdl-bitstream "${{ HDL_BITSTREAM }}"
   depends_on:
     - u-boot-xlnx
     - arm-trusted-firmware

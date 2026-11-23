@@ -59,11 +59,13 @@ else
     done
 fi
 
-if [ -z "$HDL_DIR" ] || [ ! -d "$HDL_DIR/projects" ]; then
-    echo -e "${RED}[ERROR]${RESET} Could not locate hdl/projects directory." >&2
-    echo "Please run this script inside an initialized CIM workspace (after cim init) or repository root." >&2
-    exit 1
-fi
+init_workspace() {
+    if [ -z "$HDL_DIR" ] || [ ! -d "$HDL_DIR/projects" ]; then
+        echo -e "${RED}[ERROR]${RESET} Could not locate hdl/projects directory." >&2
+        echo "Please run this script inside an initialized CIM workspace (after cim init) or repository root." >&2
+        exit 1
+    fi
+}
 
 # Vivado version that each known HDL release was validated against.
 vivado_version_for_release() {
@@ -265,6 +267,28 @@ get_boot_bin_script() {
         zynqmp) echo "${WORKSPACE_ROOT}/scripts/build_zynqmp_boot_bin.sh" ;;
         versal) echo "${WORKSPACE_ROOT}/scripts/build_versal_boot_bin.sh" ;;
     esac
+}
+
+# Resolve location of hdl-prebuilt.py helper script
+get_prebuilt_script() {
+    if [ -f "${WORKSPACE_ROOT}/scripts/hdl-prebuilt.py" ]; then
+        echo "${WORKSPACE_ROOT}/scripts/hdl-prebuilt.py"
+    else
+        echo "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/hdl-prebuilt.py"
+    fi
+}
+
+# Check if a prebuilt HDL package exists for a project/board
+has_prebuilt_hdl() {
+    local proj="$1"
+    local board="${2:-}"
+    local script
+    script="$(get_prebuilt_script)"
+    if [ -f "$script" ]; then
+        python3 "$script" --check --project "$proj" ${board:+--board "$board"} >/dev/null 2>&1
+    else
+        return 1
+    fi
 }
 
 # Command line for the BOOT.BIN helper. Zynq-7000 takes (xsa, u-boot); ZynqMP
@@ -670,10 +694,30 @@ run_interactive_wizard() {
     echo -e "\n${BOLD}${YELLOW}[Step 3/5] EDA Tool Environment Verification${RESET}"
     echo -e "Required Tool for ${selected_project}/${selected_board}: ${BOLD}${CYAN}${required_tool}${RESET} (${tool_desc})"
     echo -n "Status: "
-    check_eda_tool_status "$required_tool"
+    local tool_status_msg
+    tool_status_msg=$(check_eda_tool_status "$required_tool")
+    local tool_status_code=$?
+    echo -e "$tool_status_msg"
+
+    local prebuilt_hdl_found="false"
+    if has_prebuilt_hdl "$selected_project" "$selected_board"; then
+        prebuilt_hdl_found="true"
+        echo -e "Prebuilt Bitstream:    ${BOLD}${GREEN}Available${RESET} (ADI Kuiper deb package; no EDA tool installation required)"
+    fi
 
     # Step 4: Build Options
     echo -e "\n${BOLD}${YELLOW}[Step 4/5] Configure Build Options${RESET}"
+
+    local hdl_bitstream="source"
+    if [ "$prebuilt_hdl_found" = "true" ]; then
+        if [ "$tool_status_code" -ne 0 ]; then
+            read -r -p "Use prebuilt HDL bitstream? [Y/n] (${required_tool} not detected) > " input_prebuilt
+            if [[ ! "$input_prebuilt" =~ ^[Nn] ]]; then hdl_bitstream="download"; fi
+        else
+            read -r -p "Use prebuilt HDL bitstream? [y/N] (y = download prebuilt; n = build with ${required_tool}) > " input_prebuilt
+            if [[ "$input_prebuilt" =~ ^[Yy] ]]; then hdl_bitstream="download"; fi
+        fi
+    fi
 
     local nproc_val
     nproc_val=$(nproc 2>/dev/null || echo 4)
@@ -743,6 +787,11 @@ run_interactive_wizard() {
     echo -e "  Project:               ${BOLD}${GREEN}${selected_project}${RESET}"
     echo -e "  Carrier Board:         ${BOLD}${GREEN}${selected_board:-(none)}${RESET}"
     echo -e "  Required Tool:         ${BOLD}${CYAN}${required_tool}${RESET} (${tool_desc})"
+    if [ "$hdl_bitstream" = "download" ]; then
+        echo -e "  HDL Bitstream:         ${BOLD}${GREEN}download${RESET} (ADI Kuiper prebuilt)"
+    else
+        echo -e "  HDL Bitstream:         ${BOLD}source${RESET} (${required_tool})"
+    fi
     echo -e "  Parallel Jobs:         ${BOLD}${make_jobs}${RESET}"
     echo -e "  Output Folder:         ${BOLD}${dir_name}${RESET}"
     echo -e "  Generate BOOT.BIN:     ${BOLD}${build_boot_bin}${RESET}${boot_arch:+ (${boot_arch})}"
@@ -755,7 +804,9 @@ run_interactive_wizard() {
             boot_vars=" BOOT_BIN_UBOOT=download BOOT_BIN_ATF=download"
         fi
     fi
-    local make_cmd="make HDL_RELEASE=${HDL_RELEASE} HDL_PROJECT=${selected_project}${selected_board:+ HDL_BOARD=${selected_board}} DIR_NAME=${dir_name} MAKE_JOBS=\"${make_jobs}\" BUILD_BOOT_BIN=${build_boot_bin}${boot_vars} sdk-build"
+    local bitstream_var=""
+    if [ "$hdl_bitstream" = "download" ]; then bitstream_var=" HDL_BITSTREAM=download"; fi
+    local make_cmd="make HDL_RELEASE=${HDL_RELEASE} HDL_PROJECT=${selected_project}${selected_board:+ HDL_BOARD=${selected_board}} DIR_NAME=${dir_name} MAKE_JOBS=\"${make_jobs}\" BUILD_BOOT_BIN=${build_boot_bin}${boot_vars}${bitstream_var} sdk-build"
     echo -e "--------------------------------------------------------------------------------"
     echo -e "Equivalent CIM / Make command:"
     echo -e "  ${CYAN}${make_cmd}${RESET}"
@@ -774,9 +825,10 @@ run_interactive_wizard() {
                      "HDL_PROJECT=${selected_project}" "HDL_BOARD=${selected_board}" "DIR_NAME=${dir_name}"
                      "MAKE_JOBS=${make_jobs}" "BUILD_BOOT_BIN=${build_boot_bin}")
         if [ -n "$boot_vars" ]; then mk+=("BOOT_BIN_UBOOT=download" "BOOT_BIN_ATF=download"); fi
+        if [ "$hdl_bitstream" = "download" ]; then mk+=("HDL_BITSTREAM=download"); fi
         exec "${mk[@]}"
     fi
-    execute_build "$selected_project" "$selected_board" "$make_jobs" "$dir_name" "$build_boot_bin" "download" "false" "download"
+    execute_build "$selected_project" "$selected_board" "$make_jobs" "$dir_name" "$build_boot_bin" "download" "false" "download" "$hdl_bitstream"
 }
 
 # Execute the actual build
@@ -789,6 +841,7 @@ execute_build() {
     local boot_bin_uboot="${6:-download}"
     local dry_run="${7:-false}"
     local boot_bin_atf="${8:-download}"
+    local hdl_bitstream="${9:-source}"
 
     if ! is_valid_combo "$proj" "$board"; then
         echo -e "${RED}[ERROR]${RESET} Invalid project/board combination: \x27${proj}/${board}\x27" >&2
@@ -807,10 +860,14 @@ execute_build() {
 
     local tool
     tool=$(get_required_tool "$proj" "$board")
-    if [ "$tool" = "Vivado" ]; then require_vivado; fi
-    local env_setup
-    env_setup=$(get_tool_env_setup "$tool")
-    if [ "$dry_run" != "true" ]; then require_tool_installed "$tool"; fi
+    local env_setup=""
+    if [ "$hdl_bitstream" = "download" ]; then
+        env_setup="echo 'HDL bitstream: prebuilt download from ADI Kuiper packages'"
+    else
+        if [ "$tool" = "Vivado" ]; then require_vivado; fi
+        env_setup=$(get_tool_env_setup "$tool")
+        if [ "$dry_run" != "true" ]; then require_tool_installed "$tool"; fi
+    fi
 
     local project_board_dir project_name
     project_board_dir="$(get_project_dir "$proj" "$board")"
@@ -837,7 +894,11 @@ execute_build() {
     echo -e "${BOLD}${GREEN}================================================================================${RESET}"
     echo -e "  HDL Release:       ${HDL_RELEASE}"
     echo -e "  Project Directory: ${project_board_dir}"
-    echo -e "  Tool Setup:        ${env_setup}"
+    if [ "$hdl_bitstream" = "download" ]; then
+        echo -e "  HDL Bitstream:     download (ADI Kuiper prebuilt)"
+    else
+        echo -e "  Tool Setup:        ${env_setup}"
+    fi
     echo -e "  Make Jobs:         ${make_jobs}"
     echo -e "  Output Folder:     ${dir_name}"
     if [ "$boot_bin_enabled" = "true" ]; then
@@ -846,11 +907,47 @@ execute_build() {
 
     if [ "$dry_run" = "true" ]; then
         echo -e "\n${YELLOW}[DRY-RUN] Commands that would be executed:${RESET}"
-        echo "1) ${env_setup}"
-        echo "2) make ${make_jobs} -C \"${project_board_dir}\" DIR_NAME=\"${dir_name}\""
-        if [ "$boot_bin_enabled" = "true" ]; then
-            echo "3) cd \"${project_board_dir}\" && ${boot_bin_cmd}   # BOOT.BIN (${boot_arch})"
+        if [ "$hdl_bitstream" = "download" ]; then
+            echo "1) python3 \"$(get_prebuilt_script)\" --extract --project \"${proj}\"${board:+ --board \"${board}\"} --project-name \"${project_name}\" --output \"${project_board_dir}/${dir_name}\""
+            if [ "$boot_bin_enabled" = "true" ]; then
+                if [ "$boot_bin_uboot" = "download" ] && [ "$boot_bin_atf" = "download" ]; then
+                    echo "2) Prebuilt BOOT.BIN unpacked to \"${project_board_dir}/${dir_name}/BOOT.BIN\""
+                else
+                    echo "2) cd \"${project_board_dir}\" && ${boot_bin_cmd}   # BOOT.BIN (${boot_arch})"
+                fi
+            fi
+        else
+            echo "1) ${env_setup}"
+            echo "2) make ${make_jobs} -C \"${project_board_dir}\" DIR_NAME=\"${dir_name}\""
+            if [ "$boot_bin_enabled" = "true" ]; then
+                echo "3) cd \"${project_board_dir}\" && ${boot_bin_cmd}   # BOOT.BIN (${boot_arch})"
+            fi
         fi
+        return 0
+    fi
+
+    if [ "$hdl_bitstream" = "download" ]; then
+        echo -e "\n${BOLD}${CYAN}Extracting prebuilt HDL artifacts...${RESET}\n"
+        local prebuilt_script
+        prebuilt_script="$(get_prebuilt_script)"
+        if [ ! -f "$prebuilt_script" ]; then
+            echo -e "${RED}[ERROR]${RESET} ${prebuilt_script} not found; re-run 'cim init'." >&2
+            exit 1
+        fi
+        python3 "$prebuilt_script" --extract --project "$proj" ${board:+--board "$board"} --project-name "$project_name" --output "${project_board_dir}/${dir_name}"
+        if [ "$boot_bin_enabled" = "true" ]; then
+            if [ "$boot_bin_uboot" = "download" ] && [ "$boot_bin_atf" = "download" ]; then
+                echo -e "\n${BOLD}${GREEN}Prebuilt BOOT.BIN ready at ${project_board_dir}/${dir_name}/BOOT.BIN${RESET}"
+                if [ -f "${project_board_dir}/${dir_name}/BOOT.BIN" ]; then
+                    cp "${project_board_dir}/${dir_name}/BOOT.BIN" "${project_board_dir}/BOOT.BIN" 2>/dev/null || true
+                fi
+            else
+                echo -e "\n${BOLD}${CYAN}Generating BOOT.BIN with custom boot components [${boot_arch}]...${RESET}"
+                cd "${project_board_dir}" || exit 1
+                eval "${boot_bin_cmd}"
+            fi
+        fi
+        echo -e "\n${BOLD}${GREEN}[SUCCESS] Prebuilt HDL artifacts extracted successfully for ${proj}${board:+/${board}}!${RESET}\n"
         return 0
     fi
 
@@ -935,6 +1032,8 @@ Direct Build Options:
                              Ignored for projects without carriers (jupiter_sdr, pluto, ...)
   -j, --jobs <N>             Parallel make jobs (e.g. -j8, default: -j\$(nproc))
   -d, --dir-name <name>      Build output directory name (default: build)
+  --hdl-bitstream <src>      HDL bitstream source: "source" builds using Vivado/Quartus/Radiant (default),
+                             "download" downloads prebuilt bitstream, XSA and boot files from ADI Kuiper packages
   --boot-bin [true|false]    Generate BOOT.BIN for Zynq-7000 / ZynqMP / Versal designs
                              (helper picked from the target device: build_boot_bin.sh,
                              build_zynqmp_boot_bin.sh or build_versal_boot_bin.sh)
@@ -988,6 +1087,7 @@ main() {
     local opt_jobs
     opt_jobs="-j$(nproc 2>/dev/null || echo 4)"
     local opt_dirname="build"
+    local opt_hdl_bitstream="source"
     local opt_boot_bin="false"
     local opt_uboot="download"
     local opt_atf="download"
@@ -999,6 +1099,7 @@ main() {
 
     if [ $# -eq 0 ]; then
         if [ -t 0 ]; then
+            init_workspace
             run_interactive_wizard
             return 0
         else
@@ -1006,6 +1107,14 @@ main() {
             return 0
         fi
     fi
+
+    for arg in "$@"; do
+        if [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
+            show_help
+            return 0
+        fi
+    done
+    init_workspace
 
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -1039,6 +1148,10 @@ main() {
                 ;;
             -d|--dir-name)
                 opt_dirname="$2"
+                shift 2
+                ;;
+            --hdl-bitstream)
+                opt_hdl_bitstream="$2"
                 shift 2
                 ;;
             --boot-bin)
@@ -1160,7 +1273,7 @@ main() {
         if [ "$opt_clean" = "true" ]; then
             execute_clean "$opt_proj" "$opt_board" "$opt_dirname"
         else
-            execute_build "$opt_proj" "$opt_board" "$opt_jobs" "$opt_dirname" "$opt_boot_bin" "$opt_uboot" "$opt_dry_run" "$opt_atf"
+            execute_build "$opt_proj" "$opt_board" "$opt_jobs" "$opt_dirname" "$opt_boot_bin" "$opt_uboot" "$opt_dry_run" "$opt_atf" "$opt_hdl_bitstream"
         fi
     elif [ -n "$opt_proj" ] && [ -z "$opt_board" ]; then
         cmd_list_boards_for_project "$opt_proj" || exit 1

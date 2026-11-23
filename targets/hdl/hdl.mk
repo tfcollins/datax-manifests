@@ -7,7 +7,7 @@
 
 HDL_SCRIPT_ARGS = --release "$(HDL_RELEASE)" --vivado "$(VIVADO)"
 
-.PHONY: guide list-combos list-projects list-boards list-tools check-tools
+.PHONY: guide list-combos list-projects list-boards list-tools check-tools list-prebuilts download-prebuilt
 
 guide:
 	@HDL_RELEASE="$(HDL_RELEASE)" VIVADO="$(VIVADO)" bash scripts/build-hdl.sh --interactive
@@ -26,3 +26,11 @@ list-tools:
 
 check-tools:
 	@bash scripts/build-hdl.sh $(HDL_SCRIPT_ARGS) --check-tools
+
+HDL_PREBUILT_PY = $(if $(wildcard scripts/hdl-prebuilt.py),scripts/hdl-prebuilt.py,$(dir $(lastword $(MAKEFILE_LIST)))hdl-prebuilt.py)
+
+list-prebuilts:
+	@python3 $(HDL_PREBUILT_PY) --list
+
+download-prebuilt:
+	@python3 $(HDL_PREBUILT_PY) --extract --project "$(HDL_PROJECT)" $(if $(HDL_BOARD),--board "$(HDL_BOARD)") --output "$(DIR_NAME)"
