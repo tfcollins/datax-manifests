@@ -1,5 +1,7 @@
 """Executable offline wizard and generated workspace contracts."""
+import contextlib
 import importlib.util
+import io
 import os
 from pathlib import Path
 import shlex
@@ -163,6 +165,27 @@ class GuideTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse((workspace / "output space").exists())
             self.assertEqual((workspace / "scripts/guide-linux.py").read_bytes(), GUIDE.read_bytes())
+
+
+class GuideJsonActionTests(unittest.TestCase):
+    def test_json_with_build_or_verify_is_usage_error(self):
+        for action in ("--build", "--verify"):
+            result = subprocess.run([sys.executable, str(GUIDE), "--release", "2026_R1", "--json", action],
+                                    capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertEqual(result.stdout, "")
+            self.assertIn("--json cannot be combined", result.stderr)
+            # and in-process: rejected before the helper could ever be launched
+            with patch.object(guide.subprocess, "run", side_effect=AssertionError("execution")), \
+                    contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as exit_:
+                guide.main(["--json", action])
+            self.assertEqual(exit_.exception.code, 2)
+        # the config export (make config-json) and --json --dry-run keep working
+        for extra in ((), ("--dry-run",)):
+            result = subprocess.run([sys.executable, str(GUIDE), "--release", "2026_R1", "--json", *extra],
+                                    capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('"target": "adi-linux"', result.stdout)
 
 
 if __name__ == "__main__":

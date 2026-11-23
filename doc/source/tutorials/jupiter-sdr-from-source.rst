@@ -87,10 +87,16 @@ Or interactively: ``make guide``, pick ``jupiter_sdr``, accept BOOT.BIN and
 Variations
 ----------
 
-- Prebuilt bitstream without Vivado:
+- Prebuilt bitstream, no synthesis:
   ``make sdk-build HDL_PROJECT=jupiter_sdr HDL_BITSTREAM=download``
   builds u-boot and BL31 from source, then packages them into a BOOT.BIN with
-  the prebuilt bitstream and XSA downloaded from ADI's Kuiper packages.
+  the prebuilt bitstream and XSA downloaded from ADI's Kuiper 2026_R1
+  packages. The packaging step still runs ``build_zynqmp_boot_bin.sh``, which
+  needs ``xsct`` and ``bootgen`` (Vitis); only the Vivado synthesis is
+  skipped. Only the all-prebuilt variant, adding
+  ``BOOT_BIN_UBOOT=download BOOT_BIN_ATF=download``, needs no Xilinx tools:
+  it unpacks Kuiper's BOOT.BIN as-is. The prebuilts are 2026_R1 only; with
+  another ``HDL_RELEASE`` they do not match and the build warns.
 - Fall back to ADI's prebuilt u-boot for one build:
   ``make sdk-build HDL_PROJECT=jupiter_sdr BOOT_BIN_UBOOT=download BOOT_BIN_ATF=download``.
 - A ZynqMP carrier design works the same way:

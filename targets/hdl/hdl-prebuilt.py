@@ -394,6 +394,11 @@ def extract_prebuilt_files(
     return extracted_files
 
 
+def json_board(board):
+    """Carrier board for JSON output: null for carrier-less designs ("-" or empty)."""
+    return None if board in (None, "", "-") else board
+
+
 def list_prebuilts(arch=None, cache_dir=DEFAULT_CACHE, as_json=False):
     """Print all available prebuilt project / carrier board combinations."""
     archs = [arch] if arch else list(CATALOG.keys())
@@ -404,7 +409,7 @@ def list_prebuilts(arch=None, cache_dir=DEFAULT_CACHE, as_json=False):
             for p in meta.get("projects", []):
                 results.append({
                     "arch": a,
-                    "board": None if p.get("board") == "-" else p.get("board"),
+                    "board": json_board(p.get("board")),
                     "name": p.get("name", ""),
                 })
         print(json.dumps(results, indent=2))
@@ -463,7 +468,7 @@ def main(argv=None):
                 print(json.dumps({
                     "found": True,
                     "arch": arch,
-                    "board": matched.get("board"),
+                    "board": json_board(matched.get("board")),
                     "name": matched.get("name"),
                 }, indent=2))
             else:
@@ -474,7 +479,7 @@ def main(argv=None):
                 print(json.dumps({
                     "found": False,
                     "project": args.project,
-                    "board": args.board or "-",
+                    "board": json_board(args.board),
                 }, indent=2))
             else:
                 print(f"NOT FOUND: project={args.project} board={args.board or '-'}", file=sys.stderr)

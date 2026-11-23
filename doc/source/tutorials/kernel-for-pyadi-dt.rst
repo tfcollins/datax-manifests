@@ -49,13 +49,27 @@ The artifacts then live in ``artifacts/2026_R1/zynqmp/zynqmp-jupiter-sdr/``
 with ``system.dtb`` next to ``Image`` and a ``devicetree`` entry in
 ``artifacts.json``.
 
-Hand the manifests to pyadi-dt from the same shell:
+Hand the manifests to pyadi-dt from the same shell. Take each path from
+``--verify`` (same arguments as the build) rather than typing it: it checks
+the manifest and prints its absolute path:
 
 .. code-block:: bash
 
    export ADIDT_CIM_RELEASE=2026-R1
-   export ADIDT_KERNEL_ARTIFACTS_ZYNQ="$PWD/artifacts/2026_R1/zynq/artifacts.json"
-   export ADIDT_KERNEL_ARTIFACTS_ZYNQMP="$PWD/artifacts/2026_R1/zynqmp/artifacts.json"
+   export ADIDT_KERNEL_ARTIFACTS_ZYNQ="$(python3 scripts/build-kernel.py --release 2026_R1 \
+       --platform zynq --output artifacts/2026_R1/zynq --verify)"
+   export ADIDT_KERNEL_ARTIFACTS_ZYNQMP="$(python3 scripts/build-kernel.py --release 2026_R1 \
+       --platform zynqmp --output artifacts/2026_R1/zynqmp --verify)"
+
+These are the kernel-only manifests (``artifacts/2026_R1/<platform>/artifacts.json``).
+For the devicetree build above the manifest is one level down, under
+``<output>/<dts>/``; add the same ``--dts`` to ``--verify`` to get it:
+
+.. code-block:: bash
+
+   export ADIDT_KERNEL_ARTIFACTS_ZYNQMP="$(python3 scripts/build-kernel.py --release 2026_R1 \
+       --platform zynqmp --output artifacts/2026_R1/zynqmp --dts zynqmp-jupiter-sdr --verify)"
+   # -> $PWD/artifacts/2026_R1/zynqmp/zynqmp-jupiter-sdr/artifacts.json
 
 Note the two spellings: pyadi-dt's public selector is ``2026-R1``; the cim
 variable and helper flag are ``2026_R1``. The manifest records release, source

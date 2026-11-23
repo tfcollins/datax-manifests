@@ -78,21 +78,11 @@ def extract_variable_comments(sdk_path):
 
 
 def parse_yaml_file(path):
-    """Parse YAML file using PyYAML or a fallback parser."""
+    """Parse a YAML file with PyYAML (checked for in main())."""
     if not path.exists():
         return {}
-    if yaml is not None:
-        with open(path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
-    # Minimal fallback parser if pyyaml is missing
-    data = {}
     with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith("#") and ":" in line:
-                k, v = line.split(":", 1)
-                data[k.strip()] = v.strip().strip("\"'")
-    return data
+        return yaml.safe_load(f) or {}
 
 
 def get_target_description(target_dir):
@@ -133,7 +123,7 @@ def get_target_info(repo_root, target_name):
             resolved_vars[vname] = dict(vmeta)
 
     # Process overlay if present
-    overlay = sdk_data.get("overlay", {})
+    overlay = sdk_data.get("overlay", {}) or {}
     overlay_vars_set = overlay.get("variables", {}).get("set", {})
     for vname, val in overlay_vars_set.items():
         if vname in resolved_vars:
@@ -152,6 +142,8 @@ def get_target_info(repo_root, target_name):
     gits = []
     if parent_info:
         gits.extend(parent_info.get("gits", []))
+    overlay_gits_remove = set((overlay.get("gits") or {}).get("remove") or [])
+    gits = [g for g in gits if g.get("name") not in overlay_gits_remove]
     for git_item in sdk_data.get("gits", []) or []:
         # If already exists in parent gits, replace or append
         gits = [g for g in gits if g.get("name") != git_item.get("name")]
@@ -165,6 +157,22 @@ def get_target_info(repo_root, target_name):
     # OS dependencies
     os_deps = parse_yaml_file(target_dir / "os-dependencies.yml")
 
+    # makefile_include: parent's lines first, then this target's (deduplicated)
+    makefile_include = list(parent_info.get("makefile_include", [])) if parent_info else []
+    for line in sdk_data.get("makefile_include", []) or []:
+        if line not in makefile_include:
+            makefile_include.append(line)
+
+    # copy_files: parent's entries minus overlay.copy_files.remove (matched on
+    # dest), then this target's own entries (which replace a same-dest entry).
+    copy_remove = set((overlay.get("copy_files") or {}).get("remove") or [])
+    copy_files = []
+    if parent_info:
+        copy_files = [dict(c) for c in parent_info.get("copy_files", []) if c.get("dest") not in copy_remove]
+    for item in sdk_data.get("copy_files", []) or []:
+        copy_files = [c for c in copy_files if c.get("dest") != item.get("dest")]
+        copy_files.append(dict(item))
+
     return {
         "name": target_name,
         "description": desc,
@@ -172,8 +180,8 @@ def get_target_info(repo_root, target_name):
         "variables": resolved_vars,
         "gits": gits,
         "os_dependencies": os_deps,
-        "makefile_include": sdk_data.get("makefile_include", []),
-        "copy_files": sdk_data.get("copy_files", []),
+        "makefile_include": makefile_include,
+        "copy_files": copy_files,
     }
 
 
@@ -207,6 +215,12 @@ def main(argv=None):
     parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
 
     args = parser.parse_args(argv)
+
+    if yaml is None:
+        sys.stderr.write(
+            "Error: manifest-tool.py needs PyYAML to read sdk.yml files.\n"
+            "Install it with: pip install pyyaml   (or: sudo apt install python3-yaml)\n")
+        return 2
 
     repo_root = args.repo_root or find_repo_root()
     if not repo_root:

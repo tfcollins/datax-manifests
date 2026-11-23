@@ -184,8 +184,20 @@ make sdk-build HDL_PROJECT=fmcomms2 HDL_BOARD=zcu102 HDL_BITSTREAM=download BUIL
   `zynqmp`) under `~/.cache/cim/hdl-boot-debs/`.
 * Unpacks `system_top.bit` (or `system_top.pdi`), `system_top.xsa`, `BOOT.BIN`
   and device tree binaries directly into the output directory (`DIR_NAME`).
-* Bypasses local Vivado checks entirely, so HDL projects can be inspected and
-  prepared on hosts without Vivado installed.
+* Skips the Vivado synthesis and its tool checks. With `BUILD_BOOT_BIN=false`,
+  or with `BUILD_BOOT_BIN=true` and both `BOOT_BIN_UBOOT=download` and
+  `BOOT_BIN_ATF=download` (the defaults), the prebuilt `BOOT.BIN` is unpacked
+  as-is and **no Xilinx tools are needed at all**.
+* Any other `BOOT_BIN_UBOOT` / `BOOT_BIN_ATF` (a local `u-boot.elf` /
+  `bl31.elf`, as the [`hdl-boot`](../hdl-boot/README.md) target passes) means a
+  new BOOT.BIN is packaged from the prebuilt XSA by `build_boot_bin.sh` /
+  `build_zynqmp_boot_bin.sh`, which still need `xsct` and `bootgen`, i.e. a
+  Vitis install. Only the Vivado synthesis is skipped then.
+* **Release:** the prebuilts always come from the Kuiper **2026_R1** packages
+  (`adi-*-boot_2026.1.0-1`), whatever `HDL_RELEASE` says. With any other
+  release (`hdl_2023_r2`, `main`, a branch or sha) the bitstream and BOOT.BIN
+  do not match the selected HDL sources; `build-hdl.sh` prints a `[WARN]` on
+  stderr when that happens.
 
 ## Guided wizard
 
