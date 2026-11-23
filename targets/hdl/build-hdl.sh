@@ -47,10 +47,13 @@ elif [ -d "${PWD}/hdl/projects" ]; then
     WORKSPACE_ROOT="${PWD}"
     HDL_DIR="${WORKSPACE_ROOT}/hdl"
 else
-    # Search upwards
+    # Search upwards, but only accept a cim workspace root (cim writes a
+    # .workspace marker there). An arbitrary ancestor that happens to hold an
+    # hdl/ checkout (e.g. ~/dev/hdl next to this repo) must never be adopted:
+    # ensure_release would switch that unrelated clone to another branch.
     curr="${PWD}"
     while [ "$curr" != "/" ]; do
-        if [ -d "$curr/hdl/projects" ]; then
+        if [ -d "$curr/hdl/projects" ] && [ -f "$curr/.workspace" ]; then
             WORKSPACE_ROOT="$curr"
             HDL_DIR="$curr/hdl"
             break
@@ -275,6 +278,15 @@ get_prebuilt_script() {
         echo "${WORKSPACE_ROOT}/scripts/hdl-prebuilt.py"
     else
         echo "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/hdl-prebuilt.py"
+    fi
+}
+
+# hdl-prebuilt.py only knows the Kuiper 2026_R1 boot packages
+# (adi-*-boot_2026.1.0-1): say so when another HDL release is selected.
+PREBUILT_HDL_RELEASE="hdl_2026_r1"
+warn_prebuilt_release_mismatch() {
+    if [ "$HDL_RELEASE" != "$PREBUILT_HDL_RELEASE" ]; then
+        echo -e "${YELLOW}[WARN]${RESET} HDL_BITSTREAM=download: the prebuilt bitstream/BOOT.BIN comes from Kuiper 2026_R1 (${PREBUILT_HDL_RELEASE}) and does not match HDL release '${HDL_RELEASE}'." >&2
     fi
 }
 
@@ -603,14 +615,19 @@ EOF
 }
 
 cmd_list_boards_json() {
-    local proj="$1"
+    local proj="$1" boards
     if is_carrierless_project "$proj"; then
         echo "[]"
-    else
-        python3 -c 'import json, sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()], indent=2))' <<EOF
-$(get_project_boards "$proj")
-EOF
+        return 0
     fi
+    if ! boards="$(get_project_boards "$proj")"; then
+        echo -e "${RED}[ERROR]${RESET} Project '${proj}' not found in release ${HDL_RELEASE}." >&2
+        echo "Use --list-projects to see all available projects." >&2
+        return 1
+    fi
+    python3 -c 'import json, sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()], indent=2))' <<EOF
+${boards}
+EOF
 }
 
 cmd_list_tools_json() {
@@ -647,6 +664,9 @@ EOF
 }
 
 cmd_check_tools_json() {
+    # Same contract as cmd_check_tools: non-zero when no Vivado resolves for the release
+    local v_resolved="true"
+    resolve_vivado || v_resolved="false"
     local v_installed="false" v_status="Not detected"
     local q_installed="false" q_status="Not detected"
     local r_installed="false" r_status="Not detected"
@@ -669,7 +689,7 @@ import json, sys
 data = {
     "release": sys.argv[1],
     "vivado": {
-        "version": sys.argv[2],
+        "version": sys.argv[2] or None,
         "path": sys.argv[3],
         "installed": sys.argv[4] == "true",
         "status": sys.argv[5]
@@ -686,9 +706,13 @@ data = {
     }
 }
 print(json.dumps(data, indent=2))
-' "$HDL_RELEASE" "${VIVADO_VERSION:-unknown}" "${VIVADO_DEFAULT:-}" "$v_installed" "$v_status" \
+' "$HDL_RELEASE" "${VIVADO_VERSION:-}" "${VIVADO_DEFAULT:-}" "$v_installed" "$v_status" \
   "${QUARTUS_DEFAULT}" "$q_installed" "$q_status" \
   "${LATTICE_DEFAULT}" "$r_installed" "$r_status"
+    if [ "$v_resolved" != "true" ]; then
+        echo -e "${RED}[ERROR]${RESET} No known Vivado version for HDL release '${HDL_RELEASE}' - set VIVADO=/path/to/Vivado." >&2
+        return 1
+    fi
 }
 
 # List boards for a single project
@@ -979,8 +1003,16 @@ execute_build() {
     if ! is_valid_combo "$proj" "$board"; then
         echo -e "${RED}[ERROR]${RESET} Invalid project/board combination: \x27${proj}/${board}\x27" >&2
         if [ -d "${PROJECTS_DIR}/${proj}" ]; then
-            echo -e "Available boards for project \x27${proj}\x27:"
-            get_project_boards "$proj" | sed "s/^/  - /"
+            if [ "$as_json" = "true" ]; then
+                # keep stdout empty: --json consumers only ever see JSON there
+                {
+                    echo -e "Available boards for project \x27${proj}\x27:"
+                    get_project_boards "$proj" | sed "s/^/  - /"
+                } >&2
+            else
+                echo -e "Available boards for project \x27${proj}\x27:"
+                get_project_boards "$proj" | sed "s/^/  - /"
+            fi
         fi
         exit 1
     fi
@@ -1000,6 +1032,7 @@ execute_build() {
     local env_setup=""
     if [ "$hdl_bitstream" = "download" ]; then
         env_setup="echo 'HDL bitstream: prebuilt download from ADI Kuiper packages'"
+        warn_prebuilt_release_mismatch
     else
         if [ "$tool" = "Vivado" ]; then require_vivado; fi
         env_setup=$(get_tool_env_setup "$tool")
@@ -1034,8 +1067,24 @@ execute_build() {
         fi
     fi
 
+    # With a prebuilt bitstream and prebuilt u-boot + ATF, the real flow only
+    # unpacks the Kuiper BOOT.BIN; build_*boot_bin.sh (xsct/bootgen) never runs.
+    local boot_bin_prebuilt="false"
+    if [ "$boot_bin_enabled" = "true" ] && [ "$hdl_bitstream" = "download" ] \
+        && [ "$boot_bin_uboot" = "download" ] && [ "$boot_bin_atf" = "download" ]; then
+        boot_bin_prebuilt="true"
+    fi
+
     if [ "$as_json" = "true" ]; then
-        local build_cmd=""
+        local build_cmd="" boot_bin_json_cmd="" boot_bin_source=""
+        if [ "$boot_bin_enabled" = "true" ]; then
+            if [ "$boot_bin_prebuilt" = "true" ]; then
+                boot_bin_source="prebuilt"
+            else
+                boot_bin_source="helper"
+                boot_bin_json_cmd="cd \"${project_board_dir}\" && ${boot_bin_cmd}"
+            fi
+        fi
         if [ "$hdl_bitstream" = "download" ]; then
             build_cmd="python3 \"$(get_prebuilt_script)\" --extract --project \"${proj}\"${board:+ --board \"${board}\"} --project-name \"${project_name}\" --output \"${project_board_dir}/${dir_name}\""
         else
@@ -1059,7 +1108,8 @@ data = {
         "enabled": sys.argv[9] == "true",
         "uboot": sys.argv[10],
         "atf": sys.argv[11],
-        "command": sys.argv[12]
+        "source": sys.argv[19] or None,
+        "command": sys.argv[12] or None
     },
     "hdl_bitstream": sys.argv[13],
     "make_jobs": sys.argv[14],
@@ -1069,14 +1119,15 @@ data = {
     "commands": {
         "build": sys.argv[18],
         "clean": "make -C \"" + sys.argv[16] + "\" DIR_NAME=\"" + sys.argv[15] + "\" clean",
-        "boot_bin": sys.argv[12] if sys.argv[9] == "true" else ""
+        "boot_bin": sys.argv[12] or None,
+        "boot_bin_source": sys.argv[19] or None
     }
 }
 print(json.dumps(data, indent=2))
 ' "$HDL_RELEASE" "$proj" "$board" "$(is_carrierless_project "$proj" && echo true || echo false)" \
   "$tool" "${VIVADO_VERSION:-}" "$env_setup" "$boot_arch" "$boot_bin_enabled" "$boot_bin_uboot" \
-  "$boot_bin_atf" "$boot_bin_cmd" "$hdl_bitstream" "$make_jobs" "$dir_name" \
-  "$project_board_dir" "$project_name" "$build_cmd"
+  "$boot_bin_atf" "$boot_bin_json_cmd" "$hdl_bitstream" "$make_jobs" "$dir_name" \
+  "$project_board_dir" "$project_name" "$build_cmd" "$boot_bin_source"
         return 0
     fi
 
@@ -1125,17 +1176,33 @@ print(json.dumps(data, indent=2))
             echo -e "${RED}[ERROR]${RESET} ${prebuilt_script} not found; re-run 'cim init'." >&2
             exit 1
         fi
-        python3 "$prebuilt_script" --extract --project "$proj" ${board:+--board "$board"} --project-name "$project_name" --output "${project_board_dir}/${dir_name}"
+        local out_dir="${project_board_dir}/${dir_name}" rc=0
+        # A BOOT.BIN left by an earlier run must never pass for this run's output
+        rm -f "${out_dir}/BOOT.BIN"
+        python3 "$prebuilt_script" --extract --project "$proj" ${board:+--board "$board"} --project-name "$project_name" --output "$out_dir" || rc=$?
+        if [ "$rc" -ne 0 ]; then
+            rm -f "${out_dir}/BOOT.BIN"
+            echo -e "\n${BOLD}${RED}[FAILED] Prebuilt extraction for ${proj}${board:+/${board}} exited with status ${rc}.${RESET}" >&2
+            exit "$rc"
+        fi
         if [ "$boot_bin_enabled" = "true" ]; then
-            if [ "$boot_bin_uboot" = "download" ] && [ "$boot_bin_atf" = "download" ]; then
-                echo -e "\n${BOLD}${GREEN}Prebuilt BOOT.BIN ready at ${project_board_dir}/${dir_name}/BOOT.BIN${RESET}"
-                if [ -f "${project_board_dir}/${dir_name}/BOOT.BIN" ]; then
-                    cp "${project_board_dir}/${dir_name}/BOOT.BIN" "${project_board_dir}/BOOT.BIN" 2>/dev/null || true
+            if [ "$boot_bin_prebuilt" = "true" ]; then
+                if [ ! -f "${out_dir}/BOOT.BIN" ]; then
+                    echo -e "\n${BOLD}${RED}[FAILED] The prebuilt package for ${proj}${board:+/${board}} did not contain a BOOT.BIN (expected ${out_dir}/BOOT.BIN).${RESET}" >&2
+                    exit 1
                 fi
+                cp "${out_dir}/BOOT.BIN" "${project_board_dir}/BOOT.BIN" 2>/dev/null || true
+                echo -e "\n${BOLD}${GREEN}Prebuilt BOOT.BIN ready at ${out_dir}/BOOT.BIN${RESET}"
             else
                 echo -e "\n${BOLD}${CYAN}Generating BOOT.BIN with custom boot components [${boot_arch}]...${RESET}"
                 cd "${project_board_dir}" || exit 1
-                eval "${boot_bin_cmd}"
+                eval "${boot_bin_cmd}" || rc=$?
+                if [ "$rc" -ne 0 ]; then
+                    # build/BOOT.BIN is Kuiper's, not one with these components
+                    rm -f "${out_dir}/BOOT.BIN"
+                    echo -e "\n${BOLD}${RED}[FAILED] BOOT.BIN generation for ${proj}${board:+/${board}} exited with status ${rc}.${RESET}" >&2
+                    exit "$rc"
+                fi
             fi
         fi
         echo -e "\n${BOLD}${GREEN}[SUCCESS] Prebuilt HDL artifacts extracted successfully for ${proj}${board:+/${board}}!${RESET}\n"
@@ -1181,8 +1248,8 @@ execute_clean() {
 
     if ! is_valid_combo "$proj" "$board"; then
         if [ "$as_json" = "true" ]; then
-            python3 -c 'import json, sys; print(json.dumps({"target": "hdl", "action": "clean", "error": "invalid combination", "project": sys.argv[1], "board": sys.argv[2]}, indent=2))' "$proj" "$board"
-            return 0
+            echo -e "${RED}[ERROR]${RESET} Project/board ${proj}/${board} does not exist in release ${HDL_RELEASE}; no clean command to report." >&2
+            exit 1
         fi
         echo "Project/board ${proj}/${board} does not exist in release ${HDL_RELEASE}; nothing to clean."
         return 0
@@ -1213,11 +1280,24 @@ print(json.dumps(data, indent=2))
 ' "$HDL_RELEASE" "$proj" "$board" "$dir_name" "$project_board_dir"
         return 0
     fi
+    if [ "$opt_dry_run" = "true" ]; then
+        echo -e "${YELLOW}[DRY-RUN] Command that would be executed:${RESET}"
+        echo "make -C \"${project_board_dir}\" DIR_NAME=\"${dir_name}\" clean"
+        return 0
+    fi
     bash -c "
         unset MAKEFLAGS MAKEOVERRIDES MFLAGS MAKELEVEL VIVADO QUARTUS LATTICE_RADIANT
         ${env_setup} 2>/dev/null || true
         make --no-print-directory -C \"${project_board_dir}\" DIR_NAME=\"${dir_name}\" clean
     "
+}
+
+# --json is for queries only (--dry-run, --list*, --check-tools, --boot-arch);
+# combined with an action that does work it is a usage error (exit 2).
+json_usage_error() {
+    echo -e "${RED}[ERROR]${RESET} --json cannot be combined with an action that does work ($1)." >&2
+    echo "Add --dry-run to get the plan as JSON, or drop --json to run it." >&2
+    exit 2
 }
 
 # Print usage / help
@@ -1258,7 +1338,9 @@ Direct Build Options:
   --dry-run                  Display resolved tool environment and make commands without executing
 
 Inspection & Information Options:
-  --json                     Output machine-readable JSON for listing and dry-run actions
+  --json                     Output machine-readable JSON for listing, --check-tools and --dry-run.
+                             Combined with a real build, --clean (without --dry-run) or
+                             --interactive it is a usage error (exit 2).
   -l, --list                 List all 160+ project-carrier board combinations and required tools
   --list-projects            List all available HDL projects
   --list-boards <project>    List all supported carrier boards for a specific project
@@ -1442,9 +1524,21 @@ main() {
         esac
     done
 
+    if [ "$opt_json" = "true" ] && [ "$opt_interactive" = "true" ]; then
+        json_usage_error "--interactive prompts on the terminal"
+    fi
     if [ "$opt_interactive" = "true" ]; then
         run_interactive_wizard
         return 0
+    fi
+    # Builds / cleans that are certain from the flags alone are refused before
+    # the hdl/ clone is switched; the carrier-less case is checked at dispatch.
+    if [ "$opt_json" = "true" ] && [ "$opt_dry_run" != "true" ] && [ -z "$opt_action" ] \
+        && [ -n "$opt_proj" ] && { [ "$opt_clean" = "true" ] || [ -n "$opt_board" ]; }; then
+        if [ "$opt_clean" = "true" ]; then
+            json_usage_error "--clean deletes build output"
+        fi
+        json_usage_error "a build runs Vivado/Quartus/Radiant or downloads prebuilts"
     fi
 
     # Every remaining action inspects or builds the selected release
@@ -1498,6 +1592,13 @@ main() {
     esac
 
     if [ -n "$opt_proj" ] && { [ -n "$opt_board" ] || is_carrierless_project "$opt_proj"; }; then
+        # --json only describes what would run; it never builds or cleans
+        if [ "$opt_json" = "true" ] && [ "$opt_dry_run" != "true" ]; then
+            if [ "$opt_clean" = "true" ]; then
+                json_usage_error "--clean deletes build output"
+            fi
+            json_usage_error "a build runs Vivado/Quartus/Radiant or downloads prebuilts"
+        fi
         if [ "$opt_clean" = "true" ]; then
             execute_clean "$opt_proj" "$opt_board" "$opt_dirname" "$opt_json"
         else

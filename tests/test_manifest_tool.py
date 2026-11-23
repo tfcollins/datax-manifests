@@ -67,6 +67,33 @@ class ManifestToolTests(unittest.TestCase):
         self.assertIn("adi-linux", data)
         self.assertIn("hdl", data)
 
+    def test_extends_inherits_makefile_include_and_copy_files(self):
+        info = json.loads(self.run_tool("--target", "hdl-boot", "--json").stdout)
+        self.assertEqual(info["makefile_include"], ["include hdl.mk", "include boot.mk"])
+        dests = [c["dest"] for c in info["copy_files"]]
+        self.assertEqual(len(dests), len(set(dests)), dests)
+        for dest in ("scripts/build_boot_bin.sh", "scripts/build_zynqmp_boot_bin.sh",
+                     "scripts/build_versal_boot_bin.sh"):
+            entry = next(c for c in info["copy_files"] if c["dest"] == dest)
+            self.assertTrue(entry["source"].startswith("https://raw.githubusercontent.com/analogdevicesinc/wiki-scripts/"))
+        # overlay.copy_files.remove drops the parent's entry; the child re-declares it once
+        for dest in ("scripts/build-hdl.sh", "scripts/hdl-prebuilt.py", "hdl.mk", "boot.mk",
+                     "scripts/build-uboot.sh", "scripts/build-atf.sh"):
+            self.assertEqual(dests.count(dest), 1, dest)
+        # the base target is unchanged
+        hdl = json.loads(self.run_tool("--target", "hdl", "--json").stdout)
+        self.assertEqual(hdl["makefile_include"], ["include hdl.mk"])
+
+    def test_missing_pyyaml_is_a_clear_error(self):
+        code = ("import runpy, sys; sys.modules['yaml'] = None; "
+                f"sys.argv = ['manifest-tool.py', '-t', 'hdl', '--json']; "
+                f"runpy.run_path({str(SCRIPT)!r}, run_name='__main__')")
+        res = subprocess.run([sys.executable, "-c", code], cwd=ROOT, text=True, capture_output=True, timeout=10)
+        self.assertEqual(res.returncode, 2, res.stderr)
+        self.assertEqual(res.stdout, "")
+        self.assertIn("pip install pyyaml", res.stderr)
+        self.assertIn("apt install python3-yaml", res.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

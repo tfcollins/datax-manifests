@@ -76,6 +76,10 @@ def main(argv=None):
     action.add_argument("--build", action="store_true", help="explicitly execute the helper (may download/build)")
     action.add_argument("--verify", action="store_true", help="offline artifact verification only")
     args = parser.parse_args(argv)
+    # --json alone is the config export (make config-json); it never runs the
+    # helper, so asking it to build or verify as well is a usage error.
+    if args.json and (args.build or args.verify):
+        parser.error("--json cannot be combined with --build or --verify (use --json alone or with --dry-run)")
     if args.list:
         if args.json:
             items = []

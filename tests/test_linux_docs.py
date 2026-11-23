@@ -44,5 +44,19 @@ class LinuxDocumentationTests(unittest.TestCase):
                                                     ("zynq", "zynqmp"))))
 
 
+class PyadiDtExportDocsTests(unittest.TestCase):
+    """pyadi-dt export paths: <output>/<dts>/artifacts.json for devicetree builds, via --verify."""
+
+    def test_export_paths_come_from_verify(self):
+        for doc in ("targets/adi-linux/README.md", "doc/source/tutorials/kernel-for-pyadi-dt.rst"):
+            text = (ROOT / doc).read_text()
+            exports = [l for l in text.splitlines() if "ADIDT_KERNEL_ARTIFACTS_" in l and "export" in l]
+            self.assertTrue(exports, doc)
+            for line in exports:
+                self.assertIn("build-kernel.py", line, doc)
+            self.assertIn("--dts zynqmp-jupiter-sdr --verify", text, doc)
+            self.assertIn("zynqmp/zynqmp-jupiter-sdr/artifacts.json", text, doc)
+
+
 if __name__ == "__main__":
     unittest.main()

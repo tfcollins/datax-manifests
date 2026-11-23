@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import re
 import struct
 import subprocess
 import tarfile
@@ -306,6 +307,87 @@ class BuildHdlIntegrationTests(unittest.TestCase):
         self.assertIn("HDL Bitstream:         download (ADI Kuiper prebuilt)", plain)
         self.assertIn("HDL_BITSTREAM=download", plain)
 
+    # --- real (non dry-run) download path, with a stub hdl-prebuilt.py -------
+
+    def stub_prebuilt(self, rc=0, boot_bin=True):
+        """hdl-prebuilt.py stand-in: writes an XSA (and BOOT.BIN) into --output, exits rc."""
+        (self.workspace / "scripts/hdl-prebuilt.py").write_text(
+            "import sys, pathlib\n"
+            "out = pathlib.Path(sys.argv[sys.argv.index('--output') + 1])\n"
+            "name = sys.argv[sys.argv.index('--project-name') + 1]\n"
+            f"if {rc}:\n    sys.exit({rc})\n"
+            "(out / (name + '.sdk')).mkdir(parents=True, exist_ok=True)\n"
+            "(out / (name + '.sdk') / 'system_top.xsa').write_text('xsa')\n"
+            f"if {boot_bin}:\n    (out / 'BOOT.BIN').write_text('fresh')\n")
+
+    def run_build(self, *args):
+        res = subprocess.run(["bash", "scripts/build-hdl.sh", "--project", "fmcomms2", "--board", "zcu102",
+                              "--hdl-bitstream", "download", *args],
+                             cwd=self.workspace, capture_output=True, text=True, timeout=30)
+        res.stdout = re.sub(r"\x1b\[[0-9;]*m", "", res.stdout)
+        res.stderr = re.sub(r"\x1b\[[0-9;]*m", "", res.stderr)
+        return res
+
+    @property
+    def out_bootbin(self):
+        return self.workspace / "hdl/projects/fmcomms2/zcu102/build/BOOT.BIN"
+
+    def test_download_extraction_failure_propagates(self):
+        self.out_bootbin.parent.mkdir(parents=True)
+        self.out_bootbin.write_text("stale")
+        self.stub_prebuilt(rc=3)
+        res = self.run_build("--boot-bin", "true")
+        self.assertEqual(res.returncode, 3, res.stderr)
+        self.assertIn("[FAILED] Prebuilt extraction for fmcomms2/zcu102 exited with status 3", res.stderr)
+        self.assertNotIn("[SUCCESS]", res.stdout)
+        self.assertNotIn("BOOT.BIN ready", res.stdout)
+        self.assertFalse(self.out_bootbin.exists())          # no stale BOOT.BIN passes for this run
+
+    def test_download_boot_bin_packaging_failure_propagates(self):
+        self.stub_prebuilt()
+        (self.workspace / "scripts/build_zynqmp_boot_bin.sh").write_text("#!/bin/bash\necho PACKAGING; exit 4\n")
+        res = self.run_build("--boot-bin", "true", "--boot-bin-uboot", "/u/u-boot.elf", "--boot-bin-atf", "/a/bl31.elf")
+        self.assertEqual(res.returncode, 4, res.stderr)
+        self.assertIn("PACKAGING", res.stdout)
+        self.assertIn("[FAILED] BOOT.BIN generation for fmcomms2/zcu102 exited with status 4", res.stderr)
+        self.assertNotIn("[SUCCESS]", res.stdout)
+        self.assertFalse(self.out_bootbin.exists())          # Kuiper's BOOT.BIN is not the requested one
+
+    def test_download_prebuilt_boot_bin_only_reported_when_present(self):
+        self.out_bootbin.parent.mkdir(parents=True)
+        self.out_bootbin.write_text("stale")
+        self.stub_prebuilt(boot_bin=False)
+        res = self.run_build("--boot-bin", "true")
+        self.assertNotEqual(res.returncode, 0)
+        self.assertNotIn("Prebuilt BOOT.BIN ready", res.stdout)
+        self.assertNotIn("[SUCCESS]", res.stdout)
+        self.assertIn("did not contain a BOOT.BIN", res.stderr)
+        # and the happy path
+        self.stub_prebuilt()
+        res = self.run_build("--boot-bin", "true")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("Prebuilt BOOT.BIN ready at", res.stdout)
+        self.assertIn("[SUCCESS]", res.stdout)
+        self.assertEqual(self.out_bootbin.read_text(), "fresh")
+
+    def test_prebuilt_release_mismatch_warns(self):
+        res = self.run_build("--dry-run")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertNotIn("does not match", res.stderr)
+        for extra in (("--dry-run",), ("--dry-run", "--json")):
+            res = self.run_build("--release", "hdl_2023_r2", *extra)
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertIn("[WARN]", res.stderr)
+            self.assertIn("Kuiper 2026_R1", res.stderr)
+            self.assertIn("does not match HDL release 'hdl_2023_r2'", res.stderr)
+            self.assertNotIn("does not match", res.stdout)
+        json.loads(res.stdout)                                   # JSON stdout stays clean
+        # a source build never warns
+        res = subprocess.run(["bash", "scripts/build-hdl.sh", "--project", "fmcomms2", "--board", "zcu102",
+                              "--release", "hdl_2023_r2", "--dry-run"],
+                             cwd=self.workspace, capture_output=True, text=True, timeout=30)
+        self.assertNotIn("Kuiper 2026_R1", res.stderr)
+
 
 class ChecksumValidationTests(unittest.TestCase):
     def test_checksum_mismatch(self):
@@ -450,6 +532,51 @@ class PrebuiltCliTests(unittest.TestCase):
         self.assertEqual(res_not_found.returncode, 1)
         data_nf = json.loads(res_not_found.stdout)
         self.assertFalse(data_nf["found"])
+
+
+class CarrierlessJsonTests(unittest.TestCase):
+    """--list and --check agree: a carrier-less design has "board": null."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.cache_dir = Path(self.tmp.name)
+        (self.cache_dir / "kuiper_zynqmp.json").write_text(json.dumps({"projects": [
+            {"name": "jupiter_sdr", "board": "-", "architecture": "zynqmp",
+             "files": [{"path": "/boot/zynqmp-jupiter-sdr/BOOT.BIN"}]}]}))
+
+    def run_cli(self, *args):
+        return subprocess.run(["python3", str(SCRIPT), "--cache", str(self.cache_dir), "--arch", "zynqmp", *args],
+                              capture_output=True, text=True, timeout=5)
+
+    def test_board_is_null_everywhere(self):
+        listed = json.loads(self.run_cli("--list", "--json").stdout)
+        self.assertIsNone(listed[0]["board"])
+        found = self.run_cli("--check", "--project", "jupiter_sdr", "--json")
+        self.assertEqual(found.returncode, 0, found.stderr)
+        self.assertIsNone(json.loads(found.stdout)["board"])
+        missing = self.run_cli("--check", "--project", "pluto", "--json")
+        self.assertEqual(missing.returncode, 1)
+        self.assertIsNone(json.loads(missing.stdout)["board"])
+
+
+class PrebuiltDocsTests(unittest.TestCase):
+    """Docs must not promise a Vivado-free BOOT.BIN when u-boot/ATF come from source."""
+
+    def test_readmes_name_the_tool_and_release_limits(self):
+        hdl = (ROOT / "targets/hdl/README.md").read_text()
+        prebuilt = hdl.split("## Prebuilt HDL bitstreams", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("2026_R1", prebuilt)
+        self.assertIn("xsct", prebuilt)
+        self.assertIn("no Xilinx tools are needed", prebuilt)
+        self.assertNotIn("without Vivado installed", prebuilt)
+        boot = (ROOT / "targets/hdl-boot/README.md").read_text()
+        self.assertNotIn("(no Vivado)", boot)
+        self.assertNotIn("without Vivado installed", boot)
+        self.assertIn("bootgen", boot)
+        tutorial = (ROOT / "doc/source/tutorials/jupiter-sdr-from-source.rst").read_text()
+        self.assertNotIn("Prebuilt bitstream without Vivado", tutorial)
+        self.assertIn("xsct", tutorial)
 
 
 if __name__ == "__main__":

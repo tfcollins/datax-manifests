@@ -51,6 +51,39 @@ class DtbOnlyCli(unittest.TestCase):
             self.assertIn('--dtb-only --release "2026_R1" --platform "zynqmp"', dry.stdout)
             self.assertIn('--dts "all"', dry.stdout)
 
+    def test_make_dtb_forwards_hdl_project(self):
+        with tempfile.TemporaryDirectory() as directory:
+            ws = Path(directory)
+            (ws / "Makefile").write_text("KERNEL_RELEASE ?= 2023_R2\nKERNEL_PLATFORM ?= zynq\nKERNEL_DTS ?= \n"
+                                         "HDL_PROJECT ?= \nKERNEL_OUTPUT ?= out\nKERNEL_JOBS ?= 2\ninclude linux.mk\n")
+            (ws / "linux.mk").write_bytes((HELPER.parent / "linux.mk").read_bytes())
+            dry = subprocess.run(["make", "-n", "dtb", "KERNEL_RELEASE=2026_R1", "KERNEL_DTS=auto",
+                                  "HDL_PROJECT=adv7511_zed"], cwd=ws, text=True, capture_output=True)
+            self.assertEqual(dry.returncode, 0, dry.stderr)
+            self.assertIn('--dts "auto" --hdl-project "adv7511_zed"', dry.stdout)
+            dry = subprocess.run(["make", "-n", "dtb", "KERNEL_DTS=all"], cwd=ws, text=True, capture_output=True)
+            self.assertNotIn("--hdl-project", dry.stdout)
+
+    def test_dtb_only_resolves_auto_through_the_csv(self):
+        # what --dtb-only does with --dts auto --hdl-project (offline: no build)
+        self.assertEqual(kernel.resolve_dts("2026_R1", "zynq", "auto", "adv7511_zed"),
+                         next(r["DTS"] for r in kernel.find_dts(kernel.load_pairings("2026_R1")[0],
+                                                                 platform="zynq", hdl_project="adv7511_zed")))
+        result = helper("--dtb-only", "--release", "2026_R1", "--platform", "zynq", "--dts", "auto", "--output", "x")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--dts auto needs --hdl-project", result.stderr)
+
+    def test_documented_dtb_examples_pin_the_release(self):
+        readme = (HELPER.parent / "README.md").read_text()
+        mk = (HELPER.parent / "linux.mk").read_text()
+        lines = [l for l in (readme + mk).splitlines() if "make dtb " in l]
+        self.assertGreaterEqual(len(lines), 3)
+        for line in lines:
+            self.assertIn("KERNEL_RELEASE=", line)
+        for line in readme.splitlines():
+            if "build-kernel.py --dtb-only" in line:
+                self.assertIn("--release", line)
+
 
 @unittest.skipUnless(os.environ.get("CIM_NETWORK"), "set CIM_NETWORK=1 to download the pinned kernel and compile devicetrees")
 class DevicetreeSweep(unittest.TestCase):

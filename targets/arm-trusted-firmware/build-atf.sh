@@ -20,19 +20,30 @@ ATF_UPSTREAM_URL="https://github.com/Xilinx/arm-trusted-firmware.git"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT=""
 for cand in "${SCRIPT_DIR}/.." "${PWD}"; do
-    if [ -d "${cand}/arm-trusted-firmware" ]; then WORKSPACE_ROOT="$(cd "$cand" && pwd)"; break; fi
+    if [ -e "${cand}/arm-trusted-firmware/.git" ]; then WORKSPACE_ROOT="$(cd "$cand" && pwd)"; break; fi
 done
 if [ -z "$WORKSPACE_ROOT" ]; then
     curr="${PWD}"
     while [ "$curr" != "/" ]; do
-        if [ -d "$curr/arm-trusted-firmware" ]; then WORKSPACE_ROOT="$curr"; break; fi
+        if [ -e "$curr/arm-trusted-firmware/.git" ] && [ -f "$curr/.workspace" ]; then WORKSPACE_ROOT="$curr"; break; fi
         curr="$(dirname "$curr")"
     done
 fi
+# Without a workspace clone (e.g. run from the manifest repo) --list / --dry-run /
+# --json still answer; anything that would run git, make or rm refuses via
+# require_checkout. A plain directory named arm-trusted-firmware/ (the manifest dir in a
+# datax-manifests checkout) never counts: git there would act on the wrong repo.
+NO_CHECKOUT=""
 if [ -z "$WORKSPACE_ROOT" ]; then
-    echo -e "${RED}[ERROR]${RESET} Could not locate the arm-trusted-firmware/ checkout; run inside an initialized cim workspace." >&2
-    exit 1
+    NO_CHECKOUT="true"
+    WORKSPACE_ROOT="${PWD}"
 fi
+require_checkout() {
+    if [ -n "$NO_CHECKOUT" ]; then
+        echo -e "${RED}[ERROR]${RESET} Could not locate the arm-trusted-firmware/ checkout; run inside an initialized cim workspace." >&2
+        exit 1
+    fi
+}
 ATF_DIR="${WORKSPACE_ROOT}/arm-trusted-firmware"
 
 # Vivado/Vitis release -> ATF tag (same mapping as wiki-scripts build_zynqmp_boot_bin.sh)
@@ -89,7 +100,7 @@ Options:
   --console <uart>         ZynqMP console: cadence0 (default) or cadence1
   --cross-compile <prefix> default aarch64-linux-gnu-
   -j, --jobs <N>
-  --json                   Output machine-readable JSON for dry-run
+  --json                   Print the resolved plan as JSON instead of building (not with --clean)
   --dry-run                Print the resolved ref and commands and exit
   --clean
   -h, --help
@@ -115,8 +126,13 @@ main() {
         esac
     done
     case "$plat" in zynqmp|versal) ;; *) echo -e "${RED}[ERROR]${RESET} --plat must be zynqmp or versal (got '${plat}')." >&2; exit 1 ;; esac
+    if [ "$opt_json" = "true" ] && [ "$clean" = "true" ]; then
+        echo -e "${RED}[ERROR]${RESET} --json cannot be combined with --clean; drop --json to run it." >&2
+        exit 2
+    fi
 
     if [ "$clean" = "true" ]; then
+        require_checkout
         rm -rf "${ATF_DIR}/build" "${ATF_DIR}/bl31.elf"
         echo "Cleaned ${ATF_DIR}/build"
         return 0
@@ -171,6 +187,7 @@ print(json.dumps(data, indent=2))
         echo -e "${RED}[ERROR]${RESET} ${cross}gcc not found. Install gcc-aarch64-linux-gnu." >&2
         exit 1
     fi
+    require_checkout
     ensure_ref "$ref"
     set -e
     make -C "$ATF_DIR" distclean >/dev/null 2>&1 || true

@@ -118,10 +118,15 @@ To iterate on a devicetree without rebuilding the kernel, or to compile every
 CSV devicetree for a platform in one go (seconds, not minutes):
 
 ```bash
-make dtb KERNEL_PLATFORM=zynqmp KERNEL_DTS=zynqmp-jupiter-sdr      # -> artifacts/.../zynqmp-jupiter-sdr/system.dtb
-make dtb KERNEL_PLATFORM=zynq KERNEL_DTS=all                        # every zynq row of the CSV
-python3 scripts/build-kernel.py --dtb-only --platform zynqmp --dts a,b,c --output dtbs
+make dtb KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynqmp KERNEL_DTS=zynqmp-jupiter-sdr   # -> artifacts/2026_R1/zynqmp/zynqmp-jupiter-sdr/system.dtb
+make dtb KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynq KERNEL_DTS=all                     # every zynq row of the CSV
+make dtb KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynq KERNEL_DTS=auto HDL_PROJECT=adv7511_zed
+python3 scripts/build-kernel.py --dtb-only --release 2026_R1 --platform zynqmp --dts a,b,c --output dtbs
 ```
+
+Always pass `KERNEL_RELEASE` (`--release`): it defaults to `2023_R2`, so a DTS
+name taken from the 2026_R1 CSV would otherwise be compiled from the 2023_R2
+kernel tree without any warning (or fail if that tree lacks it).
 
 `--dtb-only` extracts the pinned source and toolchain, applies the platform
 defconfig and builds just the `.dtb` targets; results go to
@@ -275,12 +280,28 @@ pyadi-dt spells the 2026 release differently:
 | `2023_R2` (default) | `2023_R2` | branch 2023_R2, frozen commit |
 | `2026-R1` | `2026_R1` | tag xlnx_2026.1.0, frozen commit |
 
-Then export from the same workspace, only for the platforms actually built:
+Then export from the same workspace, only for the platforms actually built.
+The safest source for each path is `build-kernel.py … --verify` with the same
+arguments as the build: it validates the manifest and prints its absolute path
+(and nothing else on stdout):
 
 ```bash
 export ADIDT_CIM_RELEASE=2026-R1
-export ADIDT_KERNEL_ARTIFACTS_ZYNQ="$PWD/artifacts/2026_R1/zynq/artifacts.json"
-export ADIDT_KERNEL_ARTIFACTS_ZYNQMP="$PWD/artifacts/2026_R1/zynqmp/artifacts.json"
+export ADIDT_KERNEL_ARTIFACTS_ZYNQ="$(python3 scripts/build-kernel.py --release 2026_R1 --platform zynq \
+  --output artifacts/2026_R1/zynq --verify)"
+export ADIDT_KERNEL_ARTIFACTS_ZYNQMP="$(python3 scripts/build-kernel.py --release 2026_R1 --platform zynqmp \
+  --output artifacts/2026_R1/zynqmp --verify)"
+```
+
+Kernel-only builds write `<KERNEL_OUTPUT>/artifacts.json`
+(`artifacts/2026_R1/zynqmp/artifacts.json`). A build with `KERNEL_DTS` writes
+it one level down, under `<KERNEL_OUTPUT>/<dts>/`; pass the same `--dts` to
+`--verify` and it prints that path:
+
+```bash
+export ADIDT_KERNEL_ARTIFACTS_ZYNQMP="$(python3 scripts/build-kernel.py --release 2026_R1 --platform zynqmp \
+  --output artifacts/2026_R1/zynqmp --dts zynqmp-jupiter-sdr --verify)"
+# -> $PWD/artifacts/2026_R1/zynqmp/zynqmp-jupiter-sdr/artifacts.json
 ```
 
 The consumer reads the manifest (schema, platform, local image, checksum,

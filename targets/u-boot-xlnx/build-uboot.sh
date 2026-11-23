@@ -23,7 +23,7 @@ UBOOT_UPSTREAM_URL="https://github.com/analogdevicesinc/u-boot-xlnx.git"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT=""
 for cand in "${SCRIPT_DIR}/.." "${PWD}"; do
-    if [ -d "${cand}/u-boot-xlnx" ]; then
+    if [ -e "${cand}/u-boot-xlnx/.git" ]; then
         WORKSPACE_ROOT="$(cd "$cand" && pwd)"
         break
     fi
@@ -31,14 +31,25 @@ done
 if [ -z "$WORKSPACE_ROOT" ]; then
     curr="${PWD}"
     while [ "$curr" != "/" ]; do
-        if [ -d "$curr/u-boot-xlnx" ]; then WORKSPACE_ROOT="$curr"; break; fi
+        if [ -e "$curr/u-boot-xlnx/.git" ] && [ -f "$curr/.workspace" ]; then WORKSPACE_ROOT="$curr"; break; fi
         curr="$(dirname "$curr")"
     done
 fi
+# Without a workspace clone (e.g. run from the manifest repo) --list / --dry-run /
+# --json still answer; anything that would run git, make or rm refuses via
+# require_checkout. A plain directory named u-boot-xlnx/ (the manifest dir in a
+# datax-manifests checkout) never counts: git there would act on the wrong repo.
+NO_CHECKOUT=""
 if [ -z "$WORKSPACE_ROOT" ]; then
-    echo -e "${RED}[ERROR]${RESET} Could not locate the u-boot-xlnx/ checkout; run inside an initialized cim workspace." >&2
-    exit 1
+    NO_CHECKOUT="true"
+    WORKSPACE_ROOT="${PWD}"
 fi
+require_checkout() {
+    if [ -n "$NO_CHECKOUT" ]; then
+        echo -e "${RED}[ERROR]${RESET} Could not locate the u-boot-xlnx/ checkout; run inside an initialized cim workspace." >&2
+        exit 1
+    fi
+}
 UBOOT_DIR="${WORKSPACE_ROOT}/u-boot-xlnx"
 
 # Xilinx reference boards track the u-boot-xlnx tag that matches the Vivado
@@ -178,7 +189,9 @@ Options:
   --cross-compile <prefix>   CROSS_COMPILE= prefix (default from preset / arch)
   -j, --jobs <N>             Parallel jobs (default: nproc)
   --hdl-project/--hdl-board  Used with --board auto to pick the preset
-  --list                     Show the preset table and exit
+  --list                     Show the preset table and exit (with --json: as JSON)
+  --json                     Print the resolved plan as JSON instead of building
+                             (not with --clean / --check-deps)
   --dry-run                  Print the resolved ref/defconfig/commands and exit
   --check-deps               Only verify the host build dependencies for the selected board
   --clean                    make distclean in u-boot-xlnx/
@@ -229,7 +242,7 @@ EOF
 
 main() {
     local board="" release="${UBOOT_RELEASE:-hdl_2026_r1}" ref="" defconfig="" dt="" cross="" jobs=""
-    local hdl_project="" hdl_board="" dry_run="false" clean="false" check_deps="false" opt_json="false"
+    local hdl_project="" hdl_board="" dry_run="false" clean="false" check_deps="false" opt_json="false" list="false"
     [ $# -eq 0 ] && { show_help; return 0; }
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -242,14 +255,7 @@ main() {
             -j|--jobs) jobs="$2"; shift 2 ;;
             --hdl-project) hdl_project="$2"; shift 2 ;;
             --hdl-board) hdl_board="$2"; shift 2 ;;
-            --list)
-                if [ "${2:-}" = "--json" ] || [ "$opt_json" = "true" ]; then
-                    cmd_list_json
-                else
-                    cmd_list
-                fi
-                return 0
-                ;;
+            --list) list="true"; shift ;;
             --json) opt_json="true"; shift ;;
             --dry-run) dry_run="true"; shift ;;
             --check-deps) check_deps="true"; shift ;;
@@ -259,7 +265,19 @@ main() {
         esac
     done
 
+    if [ "$list" = "true" ]; then
+        if [ "$opt_json" = "true" ]; then cmd_list_json; else cmd_list; fi
+        return 0
+    fi
+    # --json only describes the build (--dry-run / plain config export); it
+    # never cleans or checks the host, so those combinations are usage errors.
+    if [ "$opt_json" = "true" ] && { [ "$clean" = "true" ] || [ "$check_deps" = "true" ]; }; then
+        echo -e "${RED}[ERROR]${RESET} --json cannot be combined with $([ "$clean" = "true" ] && echo --clean || echo --check-deps); drop --json to run it." >&2
+        exit 2
+    fi
+
     if [ "$clean" = "true" ]; then
+        require_checkout
         make -C "$UBOOT_DIR" distclean >/dev/null 2>&1 || true
         rm -f "$UBOOT_DIR/u-boot.elf"
         echo "Cleaned ${UBOOT_DIR}"
@@ -358,6 +376,7 @@ print(json.dumps(data, indent=2))
         return 0
     fi
 
+    require_checkout
     check_host_deps "$cross"
     ensure_ref "$ref"
     set -e

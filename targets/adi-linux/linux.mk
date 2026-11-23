@@ -19,12 +19,15 @@ list-dts:
 	@python3 scripts/build-kernel.py --list-dts --release "$(KERNEL_RELEASE)" --platform "$(KERNEL_PLATFORM)" \
 		$(if $(HDL_PROJECT),--hdl-project "$(HDL_PROJECT)")
 
-# Devicetree only, no kernel (seconds instead of minutes):
-#   make dtb KERNEL_PLATFORM=zynqmp KERNEL_DTS=zynqmp-jupiter-sdr
-#   make dtb KERNEL_PLATFORM=zynq KERNEL_DTS=all        # every CSV row for the platform
+# Devicetree only, no kernel (seconds instead of minutes). KERNEL_RELEASE
+# defaults to 2023_R2: pass it whenever the DTS comes from the 2026_R1 CSV.
+#   make dtb KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynqmp KERNEL_DTS=zynqmp-jupiter-sdr
+#   make dtb KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynq KERNEL_DTS=all      # every CSV row for the platform
+#   make dtb KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynq KERNEL_DTS=auto HDL_PROJECT=adv7511_zed
 dtb:
 	@python3 scripts/build-kernel.py --dtb-only --release "$(KERNEL_RELEASE)" --platform "$(KERNEL_PLATFORM)" \
-		--dts "$(KERNEL_DTS)" --output "$(KERNEL_OUTPUT)" --jobs "$(KERNEL_JOBS)"
+		--dts "$(KERNEL_DTS)" $(if $(HDL_PROJECT),--hdl-project "$(HDL_PROJECT)") \
+		--output "$(KERNEL_OUTPUT)" --jobs "$(KERNEL_JOBS)"
 
 list-combos-json:
 	@python3 scripts/guide-linux.py --list --json
