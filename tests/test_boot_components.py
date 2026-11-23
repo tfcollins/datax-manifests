@@ -201,10 +201,12 @@ class HdlBootManifestTests(unittest.TestCase):
         # helper scripts are shared with the standalone targets via symlinks
         # hdl's helpers are re-declared as hdl-boot's own so the workspace gets
         # them with any --source form (cim#89); the overlay drops the inherited ones
-        self.assertEqual(sorted(boot["overlay"]["copy_files"]["remove"]), ["hdl.mk", "scripts/build-hdl.sh"])
-        self.assertEqual({c["dest"] for c in boot["copy_files"]} & {"scripts/build-hdl.sh", "hdl.mk"},
-                         {"scripts/build-hdl.sh", "hdl.mk"})
-        for name in ("build-uboot.sh", "build-atf.sh", "build-hdl.sh", "hdl.mk", "os-dependencies.yml"):
+        self.assertEqual(sorted(boot["overlay"]["copy_files"]["remove"]),
+                         ["hdl.mk", "scripts/build-hdl.sh", "scripts/hdl-prebuilt.py"])
+        own = {"scripts/build-hdl.sh", "hdl.mk", "scripts/hdl-prebuilt.py"}
+        self.assertEqual({c["dest"] for c in boot["copy_files"]} & own, own)
+        for name in ("build-uboot.sh", "build-atf.sh", "build-hdl.sh", "hdl.mk", "hdl-prebuilt.py",
+                     "os-dependencies.yml"):
             link = ROOT / "targets/hdl-boot" / name
             self.assertTrue(link.is_symlink(), name)
             self.assertTrue(link.resolve().is_file(), name)
