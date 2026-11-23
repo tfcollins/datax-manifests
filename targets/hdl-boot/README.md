@@ -24,9 +24,11 @@ cim init --target hdl-boot --source https://github.com/tfcollins/datax-manifests
 cd ~/cim-hdl-boot && cim makefile
 
 make boot-dry-run HDL_PROJECT=jupiter_sdr        # show the u-boot / ATF resolution
+make config-json  HDL_PROJECT=jupiter_sdr        # export resolved HDL + BOOT.BIN config as JSON
+make boot-config-json HDL_PROJECT=jupiter_sdr    # export resolved u-boot and ATF config as JSON
 make sdk-build    HDL_PROJECT=jupiter_sdr        # u-boot + bl31 + Vivado + BOOT.BIN
 make sdk-build    HDL_PROJECT=fmcomms2 HDL_BOARD=zed HDL_RELEASE=hdl_2023_r2
-make sdk-build    HDL_PROJECT=fmcomms2 HDL_BOARD=zcu102 HDL_BITSTREAM=download # build u-boot/bl31 with prebuilt bitstream (no Vivado)
+make sdk-build    HDL_PROJECT=fmcomms2 HDL_BOARD=zcu102 HDL_BITSTREAM=download # u-boot/bl31 from source + prebuilt bitstream (no synthesis; BOOT.BIN packaging still needs Vitis xsct/bootgen)
 ```
 
 ## Guided wizard
@@ -60,9 +62,13 @@ with those variables so u-boot and ATF are built (or skipped) before the HDL.
 entirely.
 
 Additionally, `HDL_BITSTREAM=download` bypasses the local Vivado synthesis and
-instead downloads the prebuilt bitstream and XSA from ADI's Kuiper packages.
-This allows developing and building custom U-Boot and BL31 from source and
-packaging a test BOOT.BIN on machines without Vivado installed.
+instead downloads the prebuilt bitstream and XSA from ADI's Kuiper 2026_R1
+packages (they do not match other `HDL_RELEASE` values; the script warns). The
+custom u-boot and BL31 are still packaged into a new BOOT.BIN by
+`build_zynqmp_boot_bin.sh` / `build_boot_bin.sh`, which need `xsct` and
+`bootgen` — a Vitis install, though no synthesis runs. Only with
+`BOOT_BIN_UBOOT=download BOOT_BIN_ATF=download` as well is nothing built
+locally: the prebuilt BOOT.BIN is unpacked and no Xilinx tools are needed.
 
 ## How it composes
 

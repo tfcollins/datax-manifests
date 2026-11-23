@@ -19,6 +19,7 @@ Standalone use, or composed with the HDL build via
 ```bash
 cim init --target arm-trusted-firmware --source https://github.com/tfcollins/datax-manifests.git --workspace ~/cim-atf --install
 cd ~/cim-atf && cim makefile
+make config-json ATF_PLAT=zynqmp ATF_RELEASE=hdl_2026_r1 # resolved configuration and commands as JSON
 make sdk-build ATF_PLAT=zynqmp ATF_RELEASE=hdl_2026_r1
 ls -l arm-trusted-firmware/bl31.elf
 ```

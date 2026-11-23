@@ -1,4 +1,5 @@
 """Offline contract tests for targets/hdl/build-hdl.sh release handling."""
+import json
 import os
 import re
 import shutil
@@ -336,10 +337,13 @@ class HdlGuideTests(unittest.TestCase):
         return str(viv)
 
     def test_build_failure_propagates(self):
-        board_dir = self.workspace / "hdl/projects/cn0561/de10nano"   # intel: no tool check needed
-        (board_dir / "Makefile").write_text("all:\n\t@echo BUILD FAILED; exit 3\n")
+        board_dir = self.workspace / "hdl/projects/cn0561/de10nano"   # intel: stub QUARTUS_ROOTDIR
+        (board_dir / "Makefile").write_text("include ../../../scripts/project-intel.mk\nall:\n\t@echo BUILD FAILED; exit 3\n")
         git(self.workspace / "hdl", "commit", "-qam", "failing stub")
-        result = self.run_script("--project", "cn0561", "--board", "de10nano")
+        fake_quartus = self.workspace / "fake-quartus"
+        fake_quartus.mkdir(exist_ok=True)
+        result = self.run_script("--project", "cn0561", "--board", "de10nano",
+                                 env={"QUARTUS_ROOTDIR": str(fake_quartus)})
         self.assertNotEqual(result.returncode, 0)          # make reports 2 for a failed recipe
         self.assertIn("[FAILED] HDL build of cn0561/de10nano exited with status 2", result.stderr)
         self.assertNotIn("[SUCCESS]", result.stdout)
@@ -395,6 +399,183 @@ class HdlGuideTests(unittest.TestCase):
                                  "--dir-name", "out")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("CLEANED out", result.stdout)
+        # --dry-run only prints the clean command
+        result = self.run_script("--project", "cn0561", "--board", "de10nano", "--clean",
+                                 "--dir-name", "out", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("CLEANED", result.stdout)
+        self.assertIn('DIR_NAME="out" clean', result.stdout)
+
+    def test_list_json(self):
+        result = self.run_script("--list", "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertIsInstance(data, list)
+        self.assertTrue(any(c["project"] == "fmcomms2" and c["board"] == "zcu102" for c in data))
+        self.assertTrue(any(c["project"] == "jupiter_sdr" and c["is_carrierless"] for c in data))
+
+    def test_list_projects_json(self):
+        result = self.run_script("--list-projects", "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertIsInstance(data, list)
+        self.assertIn("fmcomms2", data)
+        self.assertIn("jupiter_sdr", data)
+
+    def test_list_boards_json(self):
+        result = self.run_script("--list-boards", "fmcomms2", "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertIsInstance(data, list)
+        self.assertIn("zcu102", data)
+
+    def test_check_tools_json(self):
+        result = self.run_script("--check-tools", "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertIn("release", data)
+        self.assertIn("vivado", data)
+        self.assertIn("quartus", data)
+        self.assertIn("radiant", data)
+
+    def test_dry_run_json(self):
+        result = self.run_script("--project", "fmcomms2", "--board", "zcu102", "--boot-bin", "--dry-run", "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertEqual(data["target"], "hdl")
+        self.assertEqual(data["project"], "fmcomms2")
+        self.assertEqual(data["board"], "zcu102")
+        self.assertEqual(data["tool"]["name"], "Vivado")
+        self.assertEqual(data["boot_arch"], "zynqmp")
+        self.assertTrue(data["boot_bin"]["enabled"])
+        self.assertIn("make", data["commands"]["build"])
+
+    def test_list_boards_json_unknown_project_fails(self):
+        # Text mode exits 1 for an unknown project; JSON must not answer "[]" with 0
+        text = self.run_script("--list-boards", "nope")
+        self.assertEqual(text.returncode, 1)
+        for args in (("--list-boards", "nope", "--json"), ("-p", "nope", "--json")):
+            result = self.run_script(*args)
+            self.assertNotEqual(result.returncode, 0, args)
+            self.assertEqual(result.stdout, "", args)
+            self.assertIn("'nope' not found", result.stderr)
+        # carrier-less projects still answer an empty list
+        result = self.run_script("--list-boards", "jupiter_sdr", "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), [])
+
+    def test_check_tools_json_fails_like_text_without_vivado(self):
+        git(self.upstream, "branch", "hdl_experimental", "hdl_2026_r1")
+        text = self.run_script("--check-tools", "--release", "hdl_experimental")
+        self.assertNotEqual(text.returncode, 0)
+        result = self.run_script("--check-tools", "--json", "--release", "hdl_experimental")
+        self.assertEqual(result.returncode, text.returncode, result.stderr)
+        data = json.loads(result.stdout)            # still a full report on stdout
+        self.assertEqual(data["release"], "hdl_experimental")
+        self.assertIsNone(data["vivado"]["version"])
+        self.assertIn("VIVADO=", result.stderr)
+        result = self.run_script("--check-tools", "--json", "--release", "hdl_experimental",
+                                 "--vivado", "/x/y/2025.1/Vivado")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["vivado"]["version"], "2025.1")
+
+    def test_invalid_board_json_keeps_stdout_clean(self):
+        result = self.run_script("-p", "fmcomms2", "-b", "nope", "--dry-run", "--json")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("Available boards for project", result.stderr)
+        self.assertIn("  - zcu102", result.stderr)
+        # text mode unchanged
+        result = self.run_script("-p", "fmcomms2", "-b", "nope", "--dry-run")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("Available boards for project", result.stdout)
+
+    def test_dry_run_json_boot_bin_matches_text_dry_run(self):
+        args = ("--project", "fmcomms2", "--board", "zcu102", "--boot-bin", "--dry-run",
+                "--boot-bin-uboot", "/u/u-boot.elf", "--boot-bin-atf", "/a/bl31.elf")
+        text = self.run_script(*args)
+        self.assertEqual(text.returncode, 0, text.stderr)
+        line = next(l for l in text.stdout.splitlines() if l.startswith("3) "))
+        text_cmd = line[3:].split("   # BOOT.BIN")[0]
+        data = json.loads(self.run_script(*args, "--json").stdout)
+        project_dir = str(self.workspace / "hdl/projects/fmcomms2/zcu102")
+        self.assertTrue(data["commands"]["boot_bin"].startswith(f'cd "{project_dir}" && bash '))
+        self.assertEqual(data["commands"]["boot_bin"], text_cmd)
+        self.assertEqual(data["commands"]["boot_bin_source"], "helper")
+        self.assertEqual(data["boot_bin"]["command"], data["commands"]["boot_bin"])
+        # no BOOT.BIN requested: no command at all
+        data = json.loads(self.run_script("--project", "fmcomms2", "--board", "zcu102",
+                                          "--dry-run", "--json").stdout)
+        self.assertIsNone(data["commands"]["boot_bin"])
+        self.assertIsNone(data["commands"]["boot_bin_source"])
+
+    def test_dry_run_json_all_prebuilt_boot_bin_is_unpacked_not_built(self):
+        base = ("--project", "jupiter_sdr", "--boot-bin", "--hdl-bitstream", "download", "--dry-run")
+        data = json.loads(self.run_script(*base, "--json").stdout)
+        self.assertIsNone(data["commands"]["boot_bin"])
+        self.assertEqual(data["commands"]["boot_bin_source"], "prebuilt")
+        self.assertEqual(data["boot_bin"]["source"], "prebuilt")
+        self.assertNotIn("boot_bin.sh", json.dumps(data["commands"]))
+        text = self.run_script(*base)
+        self.assertIn("Prebuilt BOOT.BIN unpacked", text.stdout)
+        # a u-boot from source still runs the packaging helper, also with a prebuilt bitstream
+        data = json.loads(self.run_script(*base, "--boot-bin-uboot", "/u/u-boot.elf", "--json").stdout)
+        self.assertEqual(data["commands"]["boot_bin_source"], "helper")
+        self.assertIn("build_zynqmp_boot_bin.sh", data["commands"]["boot_bin"])
+        self.assertTrue(data["commands"]["boot_bin"].startswith("cd \""))
+        # and so does a source bitstream with downloaded u-boot/ATF
+        data = json.loads(self.run_script("--project", "jupiter_sdr", "--boot-bin", "--dry-run", "--json").stdout)
+        self.assertEqual(data["commands"]["boot_bin_source"], "helper")
+
+    def stub_make_targets(self):
+        board_dir = self.workspace / "hdl/projects/cn0561/de10nano"
+        (board_dir / "Makefile").write_text("-include ../../scripts/project-intel.mk\n"
+                                            "all:\n\t@echo BUILT\nclean:\n\t@echo CLEANED\n")
+        git(self.workspace / "hdl", "commit", "-qam", "stub build/clean")
+        fake_quartus = self.workspace / "fake-quartus"
+        fake_quartus.mkdir(exist_ok=True)
+        return {"QUARTUS_ROOTDIR": str(fake_quartus)}
+
+    def test_json_with_a_real_action_is_a_usage_error(self):
+        env = self.stub_make_targets()
+        combo = ("--project", "cn0561", "--board", "de10nano")
+        for extra in ((), ("--clean",), ("--hdl-bitstream", "download")):
+            result = self.run_script(*combo, *extra, "--json", env=env)
+            self.assertEqual(result.returncode, 2, (extra, result.stderr))
+            self.assertEqual(result.stdout, "", extra)
+            self.assertIn("--json cannot be combined", result.stderr)
+        # carrier-less: --project alone is a build too
+        result = self.run_script("--project", "jupiter_sdr", "--json")
+        self.assertEqual(result.returncode, 2, result.stderr)
+        # rejected before hdl/ is switched to another release
+        result = self.run_script("--release", "hdl_2023_r2", *combo, "--json", env=env)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(self.head_branch(), "hdl_2026_r1")
+        # --interactive never prompts under --json
+        result = self.run_script("--interactive", "--json", input="fmcomms2\n")
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stdout, "")
+        # queries stay allowed
+        for args in (("--project", "fmcomms2", "--json"), (*combo, "--dry-run", "--json"),
+                     (*combo, "--clean", "--dry-run", "--json")):
+            result = self.run_script(*args, env=env)
+            self.assertEqual(result.returncode, 0, (args, result.stderr))
+            json.loads(result.stdout)
+            self.assertNotIn("BUILT", result.stdout)
+            self.assertNotIn("CLEANED", result.stdout)
+        self.assertEqual(json.loads(self.run_script(*combo, "--clean", "--dry-run", "--json",
+                                                    env=env).stdout)["action"], "clean")
+        # text mode still builds / cleans
+        self.assertIn("BUILT", self.run_script(*combo, env=env).stdout)
+        self.assertIn("CLEANED", self.run_script(*combo, "--clean", env=env).stdout)
+
+    def test_clean_json_of_missing_combo_fails(self):
+        result = self.run_script("--project", "nope", "--board", "zed", "--clean", "--dry-run", "--json")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("does not exist", result.stderr)
+        result = self.run_script("--project", "nope", "--board", "zed", "--clean", "--json")
+        self.assertEqual(result.returncode, 2)
 
 
 class HdlBootWizardTests(HdlGuideTests):
@@ -484,6 +665,68 @@ class HdlBootWizardTests(HdlGuideTests):
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("set ATF_PLAT", r.stderr)
 
+    def boot_make(self, *args):
+        (self.workspace / "Makefile").write_text(
+            "HDL_RELEASE ?= hdl_2026_r1\nHDL_PROJECT ?= fmcomms2\nHDL_BOARD ?= zcu102\nBUILD_BOOT_BIN ?= true\n"
+            "BOOT_BIN_UBOOT ?= $(CURDIR)/u-boot-xlnx/u-boot.elf\nBOOT_BIN_ATF ?= $(CURDIR)/arm-trusted-firmware/bl31.elf\n"
+            "UBOOT_BOARD ?= auto\nUBOOT_REF ?=\nUBOOT_DEFCONFIG ?=\nUBOOT_DEVICE_TREE ?=\n"
+            "ATF_PLAT ?= auto\nATF_REF ?=\nATF_CONSOLE ?= cadence0\ninclude boot.mk\n")
+        return subprocess.run(["make", "-s", *args], cwd=self.workspace, text=True, capture_output=True, env=self.env)
+
+    def test_boot_config_json_non_bootable_design(self):
+        r = self.boot_make("boot-config-json", "HDL_PROJECT=fmcomms2", "HDL_BOARD=kcu105")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        data = json.loads(r.stdout)
+        self.assertEqual(data["boot_arch"], "none")          # not "none\nnone"
+        self.assertIsNone(data["uboot"])
+        self.assertIsNone(data["atf"])
+
+    def test_boot_config_json_zynq_has_no_atf(self):
+        r = self.boot_make("boot-config-json", "HDL_PROJECT=fmcomms2", "HDL_BOARD=zed", "HDL_RELEASE=hdl_2023_r2")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        data = json.loads(r.stdout)
+        self.assertEqual(data["boot_arch"], "zynq")
+        self.assertEqual(data["uboot"]["defconfig"], "xilinx_zynq_virt_defconfig")
+        self.assertIsNone(data["atf"])
+
+    def test_boot_config_json_unresolvable_uboot_is_null_with_message(self):
+        r = self.boot_make("boot-config-json", "UBOOT_BOARD=bogus")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        data = json.loads(r.stdout)
+        self.assertIsNone(data["uboot"])
+        self.assertIn("u-boot could not be resolved", r.stderr)
+        self.assertEqual(data["boot_arch"], "zynqmp")
+        self.assertEqual(data["atf"]["plat"], "zynqmp")
+
+    def test_boot_config_json_passes_the_recipes_overrides(self):
+        overrides = ("UBOOT_REF=my-uboot-ref", "UBOOT_DEFCONFIG=my_defconfig", "UBOOT_DEVICE_TREE=my-dt",
+                     "ATF_REF=my-atf-ref")
+        r = self.boot_make("boot-config-json", *overrides)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        data = json.loads(r.stdout)
+        self.assertEqual(data["uboot"]["ref"], "my-uboot-ref")
+        self.assertEqual(data["uboot"]["defconfig"], "my_defconfig")
+        self.assertEqual(data["uboot"]["device_tree"], "my-dt")
+        self.assertEqual(data["atf"]["ref"], "my-atf-ref")
+        # ... which are exactly what the real recipes pass
+        uboot = self.boot_make("-n", "boot-uboot", *overrides).stdout
+        for flag in ('--ref "my-uboot-ref"', '--defconfig "my_defconfig"', '--device-tree "my-dt"'):
+            self.assertIn(flag, uboot)
+        self.assertIn('--ref "my-atf-ref"', self.boot_make("-n", "boot-atf", *overrides).stdout)
+
+    def test_boot_dry_run_honours_overrides(self):
+        r = self.boot_make("boot-dry-run")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("checkout xlnx_rebase_v2025.01_2025.1", r.stdout)
+        self.assertIn("checkout xilinx-v2025.1", r.stdout)
+        r = self.boot_make("boot-dry-run", "UBOOT_REF=my-uboot-ref", "ATF_REF=my-atf-ref")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("u-boot-xlnx\" checkout my-uboot-ref", r.stdout)
+        self.assertIn("arm-trusted-firmware\" checkout my-atf-ref", r.stdout)
+        r = self.boot_make("boot-dry-run", "HDL_PROJECT=fmcomms2", "HDL_BOARD=zed", "HDL_RELEASE=hdl_2023_r2")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("ATF: not needed (zynq)", r.stdout)
+
 
 @unittest.skipUnless(os.environ.get("CIM_NETWORK"), "set CIM_NETWORK=1 to clone the real hdl repo")
 class HdlCimWorkspaceTests(unittest.TestCase):
@@ -511,6 +754,36 @@ class HdlCimWorkspaceTests(unittest.TestCase):
             head = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=workspace / "hdl",
                                   check=True, text=True, capture_output=True).stdout.strip()
             self.assertEqual(head, "hdl_2023_r2")
+
+
+class WorkspaceDiscoveryTests(unittest.TestCase):
+    """The upward search must not adopt an unrelated hdl/ checkout in an ancestor."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.parent = Path(self.temporary.name) / "parent"
+        (self.parent / "hdl/projects/x").mkdir(parents=True)     # not a git repo: nothing to switch
+        self.checkout = self.parent / "checkout"
+        (self.checkout / "tools").mkdir(parents=True)
+        shutil.copy(SCRIPT, self.checkout / "tools/build-hdl.sh")
+        self.env = {k: v for k, v in os.environ.items() if k not in ("HDL_RELEASE", "VIVADO", "XILINX_VIVADO")}
+
+    def run_script(self, *args):
+        return subprocess.run(["bash", "tools/build-hdl.sh", *args], cwd=self.checkout, text=True,
+                              capture_output=True, timeout=30, env=self.env)
+
+    def test_ancestor_hdl_without_workspace_marker_is_ignored(self):
+        result = self.run_script("--list-projects")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Could not locate hdl/projects", result.stderr)
+        self.assertNotIn("x", result.stdout.split())
+
+    def test_ancestor_cim_workspace_is_found(self):
+        (self.parent / ".workspace").write_text("workspace_version: 1\n")
+        result = self.run_script("--list-projects")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("x", result.stdout.split())
 
 
 if __name__ == "__main__":

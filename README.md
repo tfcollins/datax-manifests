@@ -32,12 +32,30 @@ cd ~/cim-hdl && cim makefile
 Use `--source /path/to/datax-manifests` for a local checkout, or
 `--version <commit>` to pin a reviewed revision of this repository.
 
+### Machine-readable discovery & configuration export (JSON)
+
+Programmatic tools and AI agents can inspect target metadata and export resolved workspace configurations without driving interactive wizards:
+
+```bash
+# Discover targets and inspect variable schemas/dependencies before workspace init:
+python3 scripts/manifest-tool.py --list-targets --json
+python3 scripts/manifest-tool.py --target hdl --json
+
+# Inside an initialized workspace, export the fully resolved build configuration & commands:
+make config-json
+
+# Query matrix combinations and tool status as JSON:
+make list-combos-json
+make check-tools-json
+make list-prebuilts-json
+```
+
 ## Targets
 
 | Target | Description |
 |---|---|
 | [hdl](targets/hdl/README.md) | ADI HDL reference designs for Vivado / Quartus / Radiant. `HDL_RELEASE` selects any `analogdevicesinc/hdl` branch, tag or commit (default `hdl_2026_r1`) and the matching Vivado; guided wizard and project/board matrix inspection via `make guide`, `make list-combos`. Optional prebuilt bitstream downloads via `HDL_BITSTREAM=download`. |
-| [hdl-boot](targets/hdl-boot/README.md) | `extends: hdl` — same workspace plus `u-boot-xlnx` and `arm-trusted-firmware` clones; `sdk-build` builds u-boot.elf and bl31.elf from source for the selected design before the HDL, so BOOT.BIN uses no prebuilt downloads. Also supports `HDL_BITSTREAM=download` to test boot firmware without Vivado. |
+| [hdl-boot](targets/hdl-boot/README.md) | `extends: hdl` — same workspace plus `u-boot-xlnx` and `arm-trusted-firmware` clones; `sdk-build` builds u-boot.elf and bl31.elf from source for the selected design before the HDL, so BOOT.BIN uses no prebuilt downloads. With `HDL_BITSTREAM=download` the bitstream/XSA come from the Kuiper 2026_R1 prebuilts (no Vivado synthesis); packaging the BOOT.BIN still needs Vitis (`xsct`, `bootgen`). |
 | [u-boot-xlnx](targets/u-boot-xlnx/README.md) | `u-boot.elf` from `analogdevicesinc/u-boot-xlnx` for ADI / AMD Zynq boards (`UBOOT_BOARD` presets: zed, zcu102, jupiter_sdr, adrv2crr_fmc, pluto, …). Builds on any x86 host. |
 | [arm-trusted-firmware](targets/arm-trusted-firmware/README.md) | `bl31.elf` from `Xilinx/arm-trusted-firmware` for ZynqMP / Versal, tag matched to the Vivado release. |
 | [adi-linux](targets/adi-linux/README.md) | Kernel-only `analogdevicesinc/linux` builds for Zynq / ZynqMP from checksum-pinned source and toolchains. `KERNEL_RELEASE` (`2023_R2`, `2026_R1`) and `KERNEL_PLATFORM` select at make time; publishes an `artifacts.json` contract for pyadi-dt. |

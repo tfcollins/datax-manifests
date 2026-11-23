@@ -20,6 +20,8 @@ cim init --target u-boot-xlnx --source https://github.com/tfcollins/datax-manife
 cd ~/cim-uboot && cim makefile
 
 make uboot-list                                   # preset table
+make uboot-list-json                              # preset table as JSON
+make config-json UBOOT_BOARD=zcu102               # resolved u-boot configuration and commands as JSON
 make sdk-build UBOOT_BOARD=zcu102 UBOOT_RELEASE=hdl_2026_r1
 make sdk-build UBOOT_BOARD=jupiter_sdr
 ls -l u-boot-xlnx/u-boot.elf

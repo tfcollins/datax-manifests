@@ -7,13 +7,18 @@
 ATF_SCRIPT_ARGS = --plat "$(ATF_PLAT)" --release "$(ATF_RELEASE)" --console "$(ATF_CONSOLE)" --jobs "$(ATF_JOBS)" \
 	$(if $(ATF_REF),--ref "$(ATF_REF)")
 
-.PHONY: atf-build atf-dry-run atf-clean
+.PHONY: atf-build atf-dry-run atf-clean config-json atf-config-json
 
 atf-build:
 	@bash scripts/build-atf.sh $(ATF_SCRIPT_ARGS)
 
 atf-dry-run:
 	@bash scripts/build-atf.sh $(ATF_SCRIPT_ARGS) --dry-run
+
+config-json:
+	@bash scripts/build-atf.sh $(ATF_SCRIPT_ARGS) --dry-run --json
+
+atf-config-json: config-json
 
 atf-clean:
 	@bash scripts/build-atf.sh --clean

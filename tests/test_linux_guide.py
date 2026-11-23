@@ -1,5 +1,7 @@
 """Executable offline wizard and generated workspace contracts."""
+import contextlib
 import importlib.util
+import io
 import os
 from pathlib import Path
 import shlex
@@ -68,6 +70,30 @@ class GuideTests(unittest.TestCase):
         argv = shlex.split(line.removeprefix("Build command: "))
         self.assertEqual(argv[-1], path)
 
+    def test_json_output(self):
+        # test --list --json
+        res_list = self.run_guide("--list", "--json")
+        self.assertEqual(res_list.returncode, 0, res_list.stderr)
+        import json
+        items = json.loads(res_list.stdout)
+        self.assertIsInstance(items, list)
+        self.assertGreaterEqual(len(items), 4)
+        releases = {item["release"] for item in items}
+        self.assertIn("2023_R2", releases)
+        self.assertIn("2026_R1", releases)
+
+        # test --json configuration export
+        res_cfg = self.run_guide("--release", "2026_R1", "--platform", "zynqmp", "--jobs", "8", "--json")
+        self.assertEqual(res_cfg.returncode, 0, res_cfg.stderr)
+        cfg = json.loads(res_cfg.stdout)
+        self.assertEqual(cfg["target"], "adi-linux")
+        self.assertEqual(cfg["release"], "2026_R1")
+        self.assertEqual(cfg["platform"], "zynqmp")
+        self.assertEqual(cfg["arch"], "arm64")
+        self.assertEqual(cfg["jobs"], 8)
+        self.assertIn("build-kernel.py", cfg["commands"]["build"])
+        self.assertIn("build-kernel.py", cfg["commands"]["verify"])
+
     def test_devicetree_step(self):
         # pick by number from the CSV choices for the platform; output gains /<dts>
         result = self.run_guide("--interactive", "--dry-run", text="2026_R1\nzynqmp\n?\nzynqmp-jupiter-sdr\n\n\n")
@@ -86,6 +112,33 @@ class GuideTests(unittest.TestCase):
         result = self.run_guide("--dry-run", "--release", "2026_R1", "--platform", "zynq", "--dts", "zynq-zed-custom")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("--dts zynq-zed-custom", result.stdout)
+
+    def test_json_with_devicetree_never_prompts(self):
+        import json
+        # make config-json passes every variable; empty DTS/HDL_PROJECT means kernel only.
+        # stdin is not a tty (and --interactive is ignored), so stdout must be JSON only.
+        res = self.run_guide("--interactive", "--release", "2026_R1", "--platform", "zynqmp",
+                             "--dts", "zynqmp-jupiter-sdr", "--hdl-project", "", "--json", text="")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        cfg = json.loads(res.stdout)
+        self.assertEqual(cfg["dts"], "zynqmp-jupiter-sdr")
+        self.assertEqual(cfg["artifact_dir"], "artifacts/2026_R1/zynqmp/zynqmp-jupiter-sdr")
+        self.assertIn("--dts zynqmp-jupiter-sdr", cfg["commands"]["build"])
+        # HDL_PROJECT resolves through the CSV exactly like sdk-build does
+        res = self.run_guide("--release", "2026_R1", "--platform", "zynq", "--dts", "",
+                             "--hdl-project", "adv7511_zed", "--json")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        cfg = json.loads(res.stdout)
+        self.assertEqual(cfg["dts"], "zynq-zed-adv7511")
+        self.assertIn("--dts zynq-zed-adv7511", cfg["commands"]["build"])
+        res = self.run_guide("--release", "2026_R1", "--platform", "zynq", "--dts", "", "--hdl-project", "", "--json")
+        self.assertIsNone(json.loads(res.stdout)["dts"])
+        self.assertNotIn("--dts", json.loads(res.stdout)["commands"]["build"])
+        # ambiguity is an error on stderr, never half-written JSON
+        res = self.run_guide("--release", "2026_R1", "--platform", "zynqmp", "--hdl-project", "jupiter_sdr", "--json")
+        self.assertNotEqual(res.returncode, 0)
+        self.assertEqual(res.stdout, "")
+        self.assertIn("several devicetrees", res.stderr)
 
     def test_generated_target(self):
         cim = os.environ.get("CIM_BIN") or shutil.which("cim")
@@ -112,6 +165,27 @@ class GuideTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse((workspace / "output space").exists())
             self.assertEqual((workspace / "scripts/guide-linux.py").read_bytes(), GUIDE.read_bytes())
+
+
+class GuideJsonActionTests(unittest.TestCase):
+    def test_json_with_build_or_verify_is_usage_error(self):
+        for action in ("--build", "--verify"):
+            result = subprocess.run([sys.executable, str(GUIDE), "--release", "2026_R1", "--json", action],
+                                    capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertEqual(result.stdout, "")
+            self.assertIn("--json cannot be combined", result.stderr)
+            # and in-process: rejected before the helper could ever be launched
+            with patch.object(guide.subprocess, "run", side_effect=AssertionError("execution")), \
+                    contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as exit_:
+                guide.main(["--json", action])
+            self.assertEqual(exit_.exception.code, 2)
+        # the config export (make config-json) and --json --dry-run keep working
+        for extra in ((), ("--dry-run",)):
+            result = subprocess.run([sys.executable, str(GUIDE), "--release", "2026_R1", "--json", *extra],
+                                    capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('"target": "adi-linux"', result.stdout)
 
 
 if __name__ == "__main__":
