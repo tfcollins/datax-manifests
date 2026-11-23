@@ -7,8 +7,7 @@ __pycache__/
 /workspace*/
 
 # cim workspaces accidentally initialized inside the repo
-/test*/
-!/tests/
+/test[0-9]*/
 .workspace
 
 # Sphinx output

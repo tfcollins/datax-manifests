@@ -85,6 +85,8 @@ jobs:
           cd "$RUNNER_TEMP/ws-linux"
           cim makefile
           make list-combos
+          make list-dts HDL_PROJECT=fmcomms2_zcu102 | grep -q zynqmp-zcu102-rev10-ad9361-fmcomms2-3
+          make -n sdk-build KERNEL_PLATFORM=zynqmp KERNEL_DTS=zynqmp-jupiter-sdr | grep -q -- '--dts "zynqmp-jupiter-sdr"'
           make guide-dry-run </dev/null
 
   docs:
@@ -118,6 +120,42 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./doc/build/html
           force_orphan: true
+
+  devicetrees:
+    name: adi-linux devicetrees (hosted)
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - test: test_2026_r1_zynq_all
+          - test: test_2026_r1_zynqmp_all
+          - test: test_2023_r2_representative
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache pinned kernel source and toolchain archives
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/cim/adi-linux
+          key: adi-linux-archives-${{ hashFiles('targets/adi-linux/build-kernel.py') }}
+          restore-keys: adi-linux-archives-
+
+      - name: Host packages (from the target's os-dependencies.yml)
+        timeout-minutes: 10
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          set -euo pipefail
+          mapfile -t pkgs < <(python3 -c "import yaml; d=yaml.safe_load(open('targets/adi-linux/os-dependencies.yml')); print('\n'.join(d['linux-x86_64']['ubuntu-24.04']['packages']))")
+          sudo apt-get -o Acquire::Retries=3 update -qq
+          sudo apt-get -o Acquire::Retries=3 install -y -qq "${pkgs[@]}" >/dev/null
+
+      - name: Compile the devicetrees (${{ matrix.test }})
+        timeout-minutes: 30
+        env:
+          CIM_NETWORK: "1"
+        run: python3 -m unittest -v tests.test_adi_devicetree.DevicetreeSweep.${{ matrix.test }}
 
   boot-components:
     name: u-boot + ATF from source (hosted)
