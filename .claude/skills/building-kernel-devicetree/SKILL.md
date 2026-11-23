@@ -1,13 +1,14 @@
 ---
 name: building-kernel-devicetree
-description: Use when asked for an ADI Linux kernel image, a devicetree blob (system.dtb / devicetree.dtb), or kernel artifacts for pyadi-dt from this repo's adi-linux target — "kernel for jupiter_sdr", "which dts goes with adv7511_zed", "check every zynqmp devicetree compiles", "ADIDT_KERNEL_ARTIFACTS", KERNEL_DTS / HDL_PROJECT lookup errors such as "several devicetrees".
+description: Use when asked for an ADI Linux kernel image, a devicetree blob (system.dtb / devicetree.dtb), or kernel artifacts for pyadi-dt from this repo's adi-linux target — "kernel for jupiter_sdr", "pick KERNEL_DTS for a build", "check every zynqmp devicetree compiles", "ADIDT_KERNEL_ARTIFACTS", KERNEL_DTS / HDL_PROJECT lookup errors such as "several devicetrees".
 ---
 
 # Kernel + devicetree with adi-linux
 
 Workspace setup and the general failure table live in `building-cim-targets`.
 This skill covers selecting the devicetree, the build modes, and where the
-artifacts land. Full reference: `targets/adi-linux/README.md`.
+artifacts land. Full reference: `targets/adi-linux/README.md`; tutorial:
+`doc/source/tutorials/kernel-for-pyadi-dt.rst`.
 
 ## Pass the release and platform on every call
 
@@ -31,7 +32,7 @@ make list-dts KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynqmp HDL_PROJECT=jupiter_
 
 | What you have | Set |
 |---|---|
-| exactly one DTS listed | `KERNEL_DTS=auto HDL_PROJECT=<p>`, or name it (`make dtb` honours `auto` only in copies whose `dtb` recipe forwards `HDL_PROJECT`; naming it always works) |
+| exactly one DTS listed | `KERNEL_DTS=auto HDL_PROJECT=<p>`, or name it (`auto` works with `sdk-build`, `config-json` and `dtb`) |
 | several (jupiter_sdr: `zynqmp-jupiter-sdr`, `…-rx2tx2`; fmcomms2_zcu102: two) | `KERNEL_DTS=<one of them>`. `auto` errors "several devicetrees"; ask the user which one if it isn't obvious |
 | a DTS not in the CSV | `KERNEL_DTS=<name>`. Accepted if the kernel tree has it |
 | nothing (kernel only) | leave `KERNEL_DTS` and `HDL_PROJECT` empty |
@@ -69,8 +70,9 @@ make sdk-build   KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynqmp KERNEL_DTS=zynqmp
 - **Missing-name list from a checkout:**
   `CIM_NETWORK=1 python3 -m unittest tests.test_adi_devicetree` lists every
   missing name at once, but still stops at the first compile error.
-- **Timing:** each run re-extracts the pinned source and applies the
-  defconfig. A full-platform sweep took about 2 min in CI.
+- **Timing:** each `make dtb` run re-extracts the pinned source and applies
+  the defconfig, with no kernel compile. A full-platform sweep took about
+  2 min in CI.
 - **Run time:** the first build downloads the pinned source and toolchain into
   `~/.cache/cim/adi-linux`. A kernel build takes minutes: run it in the
   background (watch-build).
@@ -79,8 +81,7 @@ make sdk-build   KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynqmp KERNEL_DTS=zynqmp
 
 Never hand-assemble the manifest path. `--verify` checks the build offline
 and prints the absolute `artifacts.json` path, which includes the `/<dts>`
-level. Run it in the workspace; from a checkout the script is
-`targets/adi-linux/build-kernel.py`.
+level. Run it from the workspace root.
 
 ```bash
 export ADIDT_CIM_RELEASE=2026-R1

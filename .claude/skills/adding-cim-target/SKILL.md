@@ -46,7 +46,8 @@ before writing a new one.
    need no EDA tools, otherwise on the `hdl-dev-2` job.
 4. **Skills**: a new `make` verb, script flag or changed default goes into
    the matching `.claude/skills/*/SKILL.md` (`inspecting-cim-manifests` for
-   queries, `making-boot-bin` / `building-kernel-devicetree` for flows).
+   queries, `making-boot-bin` / `building-kernel-devicetree` for flows; setup/fast-path
+   row and failures → `building-cim-targets`).
    `tests/test_skills.py` fails on any `make <verb>` or repo path a skill
    names that no longer exists.
 5. Local checks before pushing:

@@ -30,8 +30,8 @@ the git URL; a local path prints "No versions found".
 | all project×board combos / tools | `make list-combos-json` · `make list-tools-json` · `make check-tools-json` (workspace) |
 | Vivado for a release | `hdl_2023_r2`→2023.2, `hdl_2026_r1`/`main`→2025.1; anything else needs `VIVADO=` |
 | is there a prebuilt (Kuiper 2026_R1 only)? | `python3 targets/hdl/hdl-prebuilt.py --list --json` (keys `name`, `board`, `arch`) · `--check --project P --board B --json` |
-| devicetree(s) for a design (text table) | `python3 targets/adi-linux/build-kernel.py --list-dts --release 2026_R1 --platform zynq --hdl-project <p>_<board>` (workspace: `make list-dts …`) |
-| the one devicetree + full kernel plan, as JSON | `python3 targets/adi-linux/guide-linux.py --release 2026_R1 --platform zynq --dts auto --hdl-project <p>_<board> --json` → `.dts`, `.artifact_dir`, `.commands.build`; exits non-zero listing the choices when there are several |
+| devicetree(s) for a design (text table) | `python3 targets/adi-linux/build-kernel.py --list-dts --release <rel: 2023_R2 or 2026_R1> --platform <plat: zynq or zynqmp> --hdl-project <p>_<board>` (carrier-less: bare name, `jupiter_sdr`) (workspace: `make list-dts …`) |
+| the one devicetree + full kernel plan, as JSON | `python3 targets/adi-linux/guide-linux.py --release <rel> --platform <plat> --dts auto --hdl-project <p>_<board> --json` → `.dts`, `.artifact_dir`, `.commands.build`; exits non-zero listing the choices when there are several |
 | u-boot preset/ref/defconfig for a design | `bash targets/u-boot-xlnx/build-uboot.sh --board auto --hdl-project <p> [--hdl-board <b>] --release <r> --dry-run --json` · all presets: `--list --json` |
 | bl31 tag for a release | `bash targets/arm-trusted-firmware/build-atf.sh --plat zynqmp --release <r> --dry-run --json` |
 | exact command a workspace build will run | `make config-json …same vars as sdk-build…` (hdl, adi-linux, u-boot-xlnx, atf) · hdl-boot: `make boot-config-json`. From a checkout, the script-level `--dry-run --json` / `guide-linux.py --json` rows above give the same plan with checkout paths |

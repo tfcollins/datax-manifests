@@ -32,7 +32,7 @@ the `adi-*-boot_2026.1.0` packages, whatever `HDL_RELEASE` says.
   `make sdk-build HDL_RELEASE=hdl_2023_r2 HDL_BITSTREAM=download …` does
   exactly that: it unpacks 2026_R1 files into a tree checked out at 2023_R2.
   Newer `build-hdl.sh` prints a `[WARN]`; older copies are silent. Never
-  combine the two.
+  combine `HDL_RELEASE=hdl_2023_r2` with `HDL_BITSTREAM=download`.
 
 **No Vivado/Vitis on the machine?**
 - **What works:** only the first two rows produce a BOOT.BIN.
@@ -48,7 +48,7 @@ the `adi-*-boot_2026.1.0` packages, whatever `HDL_RELEASE` says.
 python3 targets/hdl/hdl-prebuilt.py --check --project P --board B --json   # prebuilt exists? arch?
 # inside the hdl / hdl-boot workspace only (build-hdl.sh needs the workspace hdl/ clone)
 make boot-dry-run HDL_RELEASE=R HDL_PROJECT=P HDL_BOARD=B                  # hdl-boot: u-boot preset + ATF tag
-bash scripts/build-hdl.sh -r R -p P -b B --boot-bin true --dry-run         # exact env + make + BOOT.BIN commands
+bash scripts/build-hdl.sh -r hdl_2026_r1 -p P [-b B] --boot-bin true --dry-run   # exact commands; no -b for carrier-less
 ```
 
 `inspecting-cim-manifests` covers the board lists and JSON queries.
@@ -58,6 +58,7 @@ bash scripts/build-hdl.sh -r R -p P -b B --boot-bin true --dry-run         # exa
 | Zynq-7000 (`zed`, `zc702`, `zc706`, `coraz7s`) | no bl31; `build_boot_bin.sh` |
 | ZynqMP (`zcu102`, `k26`, SOMs) | needs bl31 (`BOOT_BIN_ATF`); `build_zynqmp_boot_bin.sh` |
 | Carrier-less (`jupiter_sdr`, `pluto`, `m2k`, …) | `HDL_PROJECT` only; leave out `HDL_BOARD` |
+| Versal (`vck190`, `vmk180`, `vpk180`) | bl31 + `build_versal_boot_bin.sh`; no adi-linux kernel |
 | MicroBlaze / Intel / Lattice (`kcu105`, `vcu118`, `de10…`) | no BOOT.BIN. Bitstream only |
 
 ## Where the BOOT.BIN is

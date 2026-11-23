@@ -1,6 +1,6 @@
 ---
 name: building-cim-targets
-description: Use when initializing, building in, or debugging a cim workspace for any target in this repo (hdl, hdl-boot, u-boot-xlnx, arm-trusted-firmware, adi-linux) — "cim init fails", "set up a workspace", "build jupiter_sdr", "u-boot from source", "switch HDL release", or a build that printed Error 127 / gnutls.h / LFS smudge / "worktree is dirty" errors.
+description: Use when initializing, building in, or debugging a cim workspace for any target in this repo (hdl, hdl-boot, u-boot-xlnx, arm-trusted-firmware, adi-linux) — "cim init fails", "set up a workspace", "switch HDL release", a standalone u-boot.elf / bl31.elf build, or a build that printed Error 127 / gnutls.h / LFS smudge / "worktree is dirty" errors. For a BOOT.BIN use making-boot-bin; for a kernel or devicetree use building-kernel-devicetree; for questions answered without building use inspecting-cim-manifests.
 ---
 
 # Building cim targets
@@ -35,14 +35,14 @@ cd <dir> && cim makefile
 | `hdl-boot` | `make boot-dry-run HDL_PROJECT=jupiter_sdr`, `make guide` | `make sdk-build HDL_PROJECT=jupiter_sdr` (u-boot → bl31 → Vivado → BOOT.BIN) |
 | `u-boot-xlnx` | `make uboot-list`, `make uboot-dry-run UBOOT_BOARD=…`, `make uboot-check-deps` | `make sdk-build UBOOT_BOARD=zcu102 UBOOT_RELEASE=hdl_2026_r1` → `u-boot-xlnx/u-boot.elf` |
 | `arm-trusted-firmware` | `make atf-dry-run` | `make sdk-build ATF_PLAT=zynqmp ATF_RELEASE=hdl_2026_r1` → `arm-trusted-firmware/bl31.elf` |
-| `adi-linux` | `make list-combos`, `make list-dts [HDL_PROJECT=x]`, `make guide-dry-run` | `make sdk-build KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynqmp [KERNEL_DTS=zynqmp-jupiter-sdr] KERNEL_JOBS=4` → `artifacts/<rel>/<plat>[/<dts>]/` |
+| `adi-linux` | `make list-combos`, `make list-dts KERNEL_RELEASE=<rel> KERNEL_PLATFORM=<plat> [HDL_PROJECT=x]`, `make guide-dry-run` | `make sdk-build KERNEL_RELEASE=2026_R1 KERNEL_PLATFORM=zynqmp [KERNEL_DTS=zynqmp-jupiter-sdr] KERNEL_JOBS=4` → `artifacts/<rel>/<plat>[/<dts>]/` |
 
 Questions answered without building ("which boards", "which Vivado", JSON
 for scripts): `inspecting-cim-manifests`. Picking a BOOT.BIN path:
 `making-boot-bin`. Kernel + devicetree: `building-kernel-devicetree`.
 
-Dry-run before any real build: `bash scripts/build-hdl.sh … --dry-run` (or `--dry-run --json`)
-prints the exact tool env + make + BOOT.BIN commands.
+hdl/hdl-boot: dry-run before any real build — `bash scripts/build-hdl.sh … --dry-run`
+(or `--dry-run --json`) prints the exact tool env + make + BOOT.BIN commands.
 
 ## Facts that are not obvious
 
@@ -50,22 +50,17 @@ prints the exact tool env + make + BOOT.BIN commands.
   `ATF_RELEASE`, `KERNEL_RELEASE`) are make-time variables. The helper
   switches the `hdl/` clone (needs network the first time, refuses a dirty
   tree) and re-derives Vivado — don't re-init to change release.
-
 - Carrier-less projects (`jupiter_sdr`, `pluto`, `m2k`, `sidekiqz2`,
   `usrpe31x`) take only `HDL_PROJECT`; `HDL_BOARD` is ignored with a warning.
 - `HDL_RELEASE` → Vivado: `hdl_2023_r2`→2023.2, `hdl_2026_r1`/`main`→2025.1;
   anything else needs `VIVADO=/path`. `hdl-dev-2.local` has both
   (`/opt/Xilinx/Vivado/2023.2`, `/opt/Xilinx/2025.1/Vivado`); picard has 2025.1 only.
-- BOOT.BIN helper is picked by device: `xc7z*`→`build_boot_bin.sh`,
-  `xczu*`→`build_zynqmp_boot_bin.sh` (needs `BOOT_BIN_ATF`), `xcv*`→versal.
-  Output: `hdl/projects/<proj>[/<board>]/output_boot_bin/BOOT.BIN`.
+- BOOT.BIN paths, helpers and which tools each path needs: `making-boot-bin`.
 - u-boot presets: Xilinx boards follow the release tag; ADI boards pin their
   own branches (`jupiter-sdr`, `master`, `pluto`). No preset → set
-  `UBOOT_REF`/`UBOOT_DEFCONFIG`/`UBOOT_DEVICE_TREE` or `BOOT_BIN_UBOOT=download`.
-- `KERNEL_DTS` is the devicetree key; `HDL_PROJECT` only looks it up in
-  `boot_pairings_<release>.csv` and errors when a project has several (pick
-  one). CSV platform `zynqu` = `zynqmp`; versal/microblaze/intel rows can't be
-  built by adi-linux.
+  `UBOOT_REF`/`UBOOT_DEFCONFIG`/`UBOOT_DEVICE_TREE` (or ADI's prebuilt via
+  `BOOT_BIN_UBOOT=download`, which is unpinned — see `making-boot-bin`).
+- Devicetree selection (`KERNEL_DTS`, the boot-pairings CSV): `building-kernel-devicetree`.
 - A real Vivado build is 30 min–2 h: run it in the background (watch-build)
   and prefer the hdl-dev-2 runner (`workflow_dispatch` with `build: true`).
 
