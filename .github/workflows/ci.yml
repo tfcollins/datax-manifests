@@ -179,6 +179,23 @@ jobs:
       - name: Install upstream cim
         run: bash .github/scripts/install-cim.sh "$CIM_VERSION"
 
+      # The hosted runners' Ubuntu mirror is slow: downloading these .debs took
+      # 11-19 min. Keep the downloaded archives in actions/cache instead. The
+      # month in the key picks up newer Ubuntu package versions; restore-keys
+      # seeds a new month from the last one, so only changed packages download.
+      - name: Apt archive cache key
+        id: apt-key
+        run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache downloaded apt archives
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/apt-archives
+          key: apt-uboot-ubuntu-24.04-${{ hashFiles('targets/u-boot-xlnx/os-dependencies.yml') }}-${{ steps.apt-key.outputs.month }}
+          restore-keys: |
+            apt-uboot-ubuntu-24.04-${{ hashFiles('targets/u-boot-xlnx/os-dependencies.yml') }}-
+            apt-uboot-ubuntu-24.04-
+
       - name: Host packages (from the targets' os-dependencies.yml)
         timeout-minutes: 20
         env:
@@ -188,9 +205,17 @@ jobs:
           mapfile -t pkgs < <(python3 -c "import yaml; d=yaml.safe_load(open('targets/u-boot-xlnx/os-dependencies.yml')); print('\n'.join(d['linux-x86_64']['ubuntu-24.04']['packages']))")
           # man-db's "Processing triggers" can take minutes on hosted runners
           sudo rm -f /var/lib/man-db/auto-update
+          archives="$HOME/.cache/apt-archives"
+          sudo mkdir -p "$archives/partial"
+          echo "apt archive cache: $(find "$archives" -maxdepth 1 -name '*.deb' | wc -l) .debs restored"
           sudo apt-get -o Acquire::Retries=3 update -qq
           # keep the per-package log: a stall shows where it happened
-          sudo apt-get -o Acquire::Retries=3 install -y -q "${pkgs[@]}"
+          sudo apt-get -o Acquire::Retries=3 -o Dir::Cache::Archives="$archives" \
+            -o APT::Keep-Downloaded-Packages=true install -y -q "${pkgs[@]}"
+          # apt wrote these as root: hand them to the runner user so the cache can save them
+          sudo rm -rf "$archives/partial" "$archives/lock"
+          sudo chown -R "$(id -u):$(id -g)" "$archives"
+          echo "apt archive cache: $(find "$archives" -maxdepth 1 -name '*.deb' | wc -l) .debs, $(du -sh "$archives" | cut -f1)"
 
       - name: Build u-boot.elf (${{ matrix.board }}, ${{ matrix.release }})
         timeout-minutes: 30
