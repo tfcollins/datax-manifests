@@ -74,13 +74,16 @@ Targets
      - Any `ADI HDL`_ project/carrier for Vivado, Quartus or Radiant. ``HDL_RELEASE``
        picks the branch/tag and the matching Vivado; guided wizard and
        project/board matrix inspection; optional prebuilt bitstream downloads
-       from ADI Kuiper packages (``HDL_BITSTREAM=download``); optional BOOT.BIN
+       from ADI's Kuiper 2026_R1 packages (``HDL_BITSTREAM=download``,
+       2026_R1 designs only); optional BOOT.BIN
        from ADI's prebuilt u-boot.
    * - :doc:`hdl-boot <targets/hdl-boot>`
      - ``extends: hdl`` — the same workspace with ``u-boot-xlnx`` and
        ``arm-trusted-firmware`` built from source first, so the BOOT.BIN has
        no downloaded blobs. Also supports ``HDL_BITSTREAM=download`` to build
-       firmware from source and test with prebuilt bitstreams without Vivado.
+       firmware from source and test with the 2026_R1 prebuilt bitstreams
+       without Vivado synthesis; packaging the BOOT.BIN still needs Vitis
+       (``xsct``, ``bootgen``).
    * - :doc:`u-boot-xlnx <targets/u-boot-xlnx>`
      - ``u-boot.elf`` for ADI / AMD Zynq boards from ``analogdevicesinc/u-boot-xlnx``
        (``UBOOT_BOARD`` presets). No EDA tools needed.
