@@ -79,7 +79,12 @@ Variations
 - Another ZedBoard design: ``HDL_PROJECT=ad9361_fmc HDL_BOARD=zed`` — same
   carrier, same u-boot download.
 - Prebuilt bitstream: ``HDL_BITSTREAM=download`` skips Vivado synthesis and
-  fetches the bitstream, XSA and BOOT.BIN directly from ADI's Kuiper packages.
+  fetches the bitstream, XSA and BOOT.BIN directly from ADI's Kuiper 2026_R1
+  packages. With the default downloaded u-boot the prebuilt BOOT.BIN is
+  unpacked as-is and no Xilinx tools are needed. The prebuilts exist for
+  2026_R1 only, so they do not match this tutorial's ``hdl_2023_r2`` (the
+  build warns); use the matching release instead:
+  ``make sdk-build HDL_RELEASE=hdl_2026_r1 HDL_PROJECT=fmcomms2 HDL_BOARD=zed HDL_BITSTREAM=download BUILD_BOOT_BIN=true``.
 - Your own u-boot: ``BOOT_BIN_UBOOT=/path/to/u-boot.elf``.
 - Clean: ``make sdk-clean HDL_RELEASE=hdl_2023_r2 HDL_PROJECT=fmcomms2 HDL_BOARD=zed``.
 
