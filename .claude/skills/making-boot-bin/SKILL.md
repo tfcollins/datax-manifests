@@ -31,7 +31,8 @@ the `adi-*-boot_2026.1.0` packages, whatever `HDL_RELEASE` says.
 - **Don't mislabel it:** never pass a 2026_R1 prebuilt off as 2023_R2.
   `make sdk-build HDL_RELEASE=hdl_2023_r2 HDL_BITSTREAM=download …` does
   exactly that: it unpacks 2026_R1 files into a tree checked out at 2023_R2.
-  Newer `build-hdl.sh` prints a `[WARN]`; older copies are silent. Never
+  Newer `build-hdl.sh` prints a `[WARN]` and `make config-json` shows
+  `.prebuilt.release_mismatch: true`; older copies are silent. Never
   combine `HDL_RELEASE=hdl_2023_r2` with `HDL_BITSTREAM=download`.
 
 **No Vivado/Vitis on the machine?**
