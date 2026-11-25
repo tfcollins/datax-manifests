@@ -1112,6 +1112,11 @@ data = {
         "command": sys.argv[12] or None
     },
     "hdl_bitstream": sys.argv[13],
+    # the Kuiper release a download comes from; null for a source build
+    "prebuilt": None if sys.argv[13] != "download" else {
+        "release": sys.argv[20],
+        "release_mismatch": sys.argv[1] != sys.argv[20]
+    },
     "make_jobs": sys.argv[14],
     "dir_name": sys.argv[15],
     "project_dir": sys.argv[16],
@@ -1127,7 +1132,7 @@ print(json.dumps(data, indent=2))
 ' "$HDL_RELEASE" "$proj" "$board" "$(is_carrierless_project "$proj" && echo true || echo false)" \
   "$tool" "${VIVADO_VERSION:-}" "$env_setup" "$boot_arch" "$boot_bin_enabled" "$boot_bin_uboot" \
   "$boot_bin_atf" "$boot_bin_json_cmd" "$hdl_bitstream" "$make_jobs" "$dir_name" \
-  "$project_board_dir" "$project_name" "$build_cmd" "$boot_bin_source"
+  "$project_board_dir" "$project_name" "$build_cmd" "$boot_bin_source" "$PREBUILT_HDL_RELEASE"
         return 0
     fi
 

@@ -197,7 +197,9 @@ make sdk-build HDL_PROJECT=fmcomms2 HDL_BOARD=zcu102 HDL_BITSTREAM=download BUIL
   (`adi-*-boot_2026.1.0-1`), whatever `HDL_RELEASE` says. With any other
   release (`hdl_2023_r2`, `main`, a branch or sha) the bitstream and BOOT.BIN
   do not match the selected HDL sources; `build-hdl.sh` prints a `[WARN]` on
-  stderr when that happens.
+  stderr when that happens, and `make config-json` reports it as
+  `"prebuilt": {"release": "hdl_2026_r1", "release_mismatch": true}`
+  (`prebuilt` is `null` for a source build).
 
 ## Guided wizard
 

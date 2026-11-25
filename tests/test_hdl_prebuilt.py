@@ -388,6 +388,19 @@ class BuildHdlIntegrationTests(unittest.TestCase):
                              cwd=self.workspace, capture_output=True, text=True, timeout=30)
         self.assertNotIn("Kuiper 2026_R1", res.stderr)
 
+    def test_prebuilt_release_mismatch_in_json(self):
+        def plan(*extra, bitstream=("--hdl-bitstream", "download")):
+            res = subprocess.run(["bash", "scripts/build-hdl.sh", "--project", "fmcomms2", "--board", "zcu102",
+                                  *bitstream, *extra, "--dry-run", "--json"],
+                                 cwd=self.workspace, capture_output=True, text=True, timeout=30)
+            self.assertEqual(res.returncode, 0, res.stderr)
+            return json.loads(res.stdout)
+        self.assertEqual(plan()["prebuilt"], {"release": "hdl_2026_r1", "release_mismatch": False})
+        self.assertEqual(plan("--release", "hdl_2023_r2")["prebuilt"],
+                         {"release": "hdl_2026_r1", "release_mismatch": True})
+        # a source build has no prebuilt, whatever the release
+        self.assertIsNone(plan("--release", "hdl_2023_r2", bitstream=())["prebuilt"])
+
 
 class ChecksumValidationTests(unittest.TestCase):
     def test_checksum_mismatch(self):
