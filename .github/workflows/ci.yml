@@ -134,12 +134,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # One entry per leg: each needs a different source/toolchain set, and a
+      # shared key keeps only whichever leg saved first (the others then
+      # re-download their toolchain on every run). A new key still seeds from
+      # any older entry, so the kernel source tarball is usually restored.
       - name: Cache pinned kernel source and toolchain archives
         uses: actions/cache@v4
         with:
           path: ~/.cache/cim/adi-linux
-          key: adi-linux-archives-${{ hashFiles('targets/adi-linux/build-kernel.py') }}
-          restore-keys: adi-linux-archives-
+          key: adi-linux-archives-${{ matrix.test }}-${{ hashFiles('targets/adi-linux/build-kernel.py') }}
+          restore-keys: |
+            adi-linux-archives-${{ matrix.test }}-
+            adi-linux-archives-
 
       - name: Host packages (from the target's os-dependencies.yml)
         timeout-minutes: 20
